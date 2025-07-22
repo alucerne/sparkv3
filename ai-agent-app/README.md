@@ -2,6 +2,8 @@
 
 A modern chat interface that combines SPARK AI's intent-based audience segment search with Claude AI's conversational capabilities.
 
+**🌐 Live Demo**: [https://spark.audiencelab.io](https://spark.audiencelab.io)
+
 ## Features
 
 - **Dual AI Integration**: SPARK AI for audience segment search + Claude AI for general conversation

@@ -1,5 +1,9 @@
 # Vercel Deployment Guide
 
+## Custom Domain: spark.audiencelab.io
+
+Your SPARK AI application is deployed at: **https://spark.audiencelab.io**
+
 ## Environment Variables Required
 
 Add these environment variables in your Vercel project settings:

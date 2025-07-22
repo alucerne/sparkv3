@@ -1,5 +1,8 @@
 # API Setup Guide
 
+## Live Application
+**🌐 Your SPARK AI app is live at**: [https://spark.audiencelab.io](https://spark.audiencelab.io)
+
 ## OpenAI API Key Setup
 
 ### 1. Get Your API Key
