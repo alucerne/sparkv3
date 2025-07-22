@@ -1,3 +1,5 @@
 {
-  "rootDirectory": "ai-agent-app"
+  "buildCommand": "cd ai-agent-app && npm install && npm run build",
+  "outputDirectory": "ai-agent-app/.next",
+  "installCommand": "cd ai-agent-app && npm install"
 } 
