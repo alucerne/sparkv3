@@ -269,8 +269,4 @@ secret = ""
 # Overrides the default auth redirectUrl.
 redirect_uri = ""
 
-[edge_functions]
-# Configure one of the supported runtimes: "deno" or "python"
-runtime = "deno"
-# Configure the maximum execution time for edge functions in seconds.
-max_execution_time = 60 
+ 

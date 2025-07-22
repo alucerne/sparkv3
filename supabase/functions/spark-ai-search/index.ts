@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 }
 
 interface SearchRequest {
@@ -84,7 +85,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         input: query,
-        model: 'text-embedding-3-small' // Using OpenAI's embedding model
+        model: 'text-embedding-3-small',
+        dimensions: 1024
       })
     })
 
@@ -105,7 +107,7 @@ serve(async (req) => {
     const embeddingTime = Date.now() - startTime
 
     // Step 2: Query Pinecone
-    const pineconeResponse = await fetch(`https://${PINECONE_INDEX}-${PINECONE_ENV}.svc.${PINECONE_ENV}.pinecone.io/query`, {
+    const pineconeResponse = await fetch(`https://${PINECONE_INDEX}-pqox9r2.svc.${PINECONE_ENV}.pinecone.io/query`, {
       method: 'POST',
       headers: {
         'Api-Key': PINECONE_API_KEY,

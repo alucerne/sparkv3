@@ -130,10 +130,22 @@ export function Chat() {
     try {
       console.log('Executing search for query:', query)
       
-      const response = await axios.post<SearchResponse>('http://localhost:8000/search', {
+      const apiUrl = process.env.NEXT_PUBLIC_SPARK_API_URL || 'http://localhost:8000/search'
+      
+      // Prepare headers for Supabase Edge Function
+      const headers: any = {
+        'Content-Type': 'application/json'
+      }
+      
+      // Add authorization header for Supabase Edge Function
+      if (apiUrl.includes('supabase.co')) {
+        headers['Authorization'] = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyYXBldnl2YmFrcnpobXFudmRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwOTM0NTYsImV4cCI6MjA2ODY2OTQ1Nn0.2bmquNWzujFRcopi_nYigXPD2ybxZ-eObUk3SLtc4s8'
+      }
+      
+      const response = await axios.post<SearchResponse>(apiUrl, {
         query: query,
         top_k: 5
-      })
+      }, { headers })
 
       console.log('Search response:', response.data)
       console.log('Raw topic names from backend:', response.data.results.map(r => r.topic))
