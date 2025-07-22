@@ -1,4 +1,8 @@
-pinecone==7.3.0
+# Vector Database (choose one)
+pinecone==7.3.0  # For Pinecone
+psycopg2-binary==2.9.9  # For Supabase PostgreSQL
+
+# Core dependencies
 python-dotenv==1.1.1
 google-cloud-storage==3.2.0
 pandas==2.3.1
