@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
 export async function POST(request: NextRequest) {
   try {
     const { message, context, history } = await request.json();
@@ -8,27 +10,86 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    // For now, we'll create a simple response that uses the context
-    // In a full implementation, this would call OpenAI's API
-    let response = "I'm here to help!";
-    let reasoning = "Processing your request...";
+    if (!OPENAI_API_KEY) {
+      return NextResponse.json({ 
+        error: 'OpenAI API key not configured',
+        response: "I'm sorry, but I'm not properly configured to respond with AI reasoning. Please check the OpenAI API configuration."
+      }, { status: 500 });
+    }
+
+    // Create the system prompt with agent instructions
+    const systemPrompt = `You are SPARK AI, an intelligent agent with access to a knowledge base. Your role is to:
+
+1. ANALYZE the user's question carefully
+2. SEARCH your knowledge base for relevant information
+3. REASON through the information step-by-step
+4. PROVIDE helpful, accurate responses
+5. CITE your sources when possible
+6. BE conversational and engaging
+
+When you have context from the knowledge base, use it to provide informed responses. When you don't have specific context, be honest about it and offer to help with other topics.
+
+Always show your reasoning process and cite sources when available.`;
+
+    // Build the conversation history
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...history.map((msg: any) => ({ role: msg.role, content: msg.content })),
+      { role: 'user', content: message }
+    ];
+
+    // Add context if available
+    if (context) {
+      messages.splice(1, 0, {
+        role: 'system',
+        content: `RELEVANT CONTEXT FROM KNOWLEDGE BASE:\n${context}\n\nUse this information to help answer the user's question.`
+      });
+    }
+
+    // Call OpenAI API
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 1000,
+        stream: false
+      })
+    });
+
+    if (!openaiResponse.ok) {
+      const errorData = await openaiResponse.json();
+      console.error('OpenAI API error:', errorData);
+      return NextResponse.json({ 
+        error: 'Failed to get AI response',
+        response: "I'm having trouble connecting to my AI reasoning engine. Please try again later."
+      }, { status: 500 });
+    }
+
+    const aiData = await openaiResponse.json();
+    const aiResponse = aiData.choices[0]?.message?.content || "I couldn't generate a response.";
+
+    // Extract reasoning and sources from the response
+    let reasoning = "I analyzed your question and searched my knowledge base for relevant information.";
     let sources = [];
 
     if (context) {
-      reasoning = `I found relevant context from your knowledge base to help answer your question.`;
+      reasoning = `I found relevant information in my knowledge base and used it to formulate my response.`;
       sources = context.split('\n\n').map((text: string, index: number) => ({
         id: index,
         metadata: { text: text.substring(0, 200) + '...' }
       }));
-      
-      response = `Based on the information I found, here's what I can tell you about "${message}":\n\n${context.substring(0, 500)}...\n\nWould you like me to search for more specific information?`;
     } else {
-      reasoning = "I couldn't find specific context in your knowledge base, but I'm here to help with general questions.";
-      response = `I don't have specific information about "${message}" in my knowledge base, but I'd be happy to help you with other questions or search for different topics.`;
+      reasoning = "I searched my knowledge base but couldn't find specific information about your question. I'm providing a general response based on my training.";
     }
 
     return NextResponse.json({
-      response,
+      response: aiResponse,
       reasoning,
       sources,
       timestamp: new Date().toISOString()
@@ -37,7 +98,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Chat API error:', error);
     return NextResponse.json(
-      { error: 'Failed to process chat request' },
+      { 
+        error: 'Failed to process chat request',
+        response: "I'm experiencing technical difficulties. Please try again in a moment."
+      },
       { status: 500 }
     );
   }
