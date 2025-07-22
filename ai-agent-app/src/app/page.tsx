@@ -196,10 +196,10 @@ export default function Home() {
         {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            🔥 SPARK AI Semantic Search
+            🔥 SPARK AI BETA
           </h1>
           <p className="text-lg text-gray-600">
-            Expert query generator for BAAI/bge-large-en-v1.5 embeddings
+            Expert query generator for 1024 Dimension Vector Embeddings
           </p>
           <p className="text-sm text-gray-500 mt-2">
             Tell me what you're looking for, and I'll generate optimized search queries for your audience segments
@@ -230,14 +230,6 @@ export default function Home() {
                   }`}
                 >
                   <div className="whitespace-pre-wrap">{message.content}</div>
-                  
-                  {/* Reasoning (for assistant messages) */}
-                  {message.reasoning && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <p className="text-xs font-semibold text-gray-500 mb-1">🤔 Reasoning:</p>
-                      <p className="text-xs text-gray-600">{message.reasoning}</p>
-                    </div>
-                  )}
                   
                   {/* Sources (for assistant messages) */}
                   {message.sources && message.sources.length > 0 && (
@@ -366,10 +358,10 @@ export default function Home() {
 
         {/* Status */}
         <div className="text-center text-sm text-gray-500 mt-4">
-          <p>✅ SPARK AI Semantic Search is running successfully</p>
+          <p>✅ SPARK AI BETA is running successfully</p>
           <p>🔗 Connected to Pinecone vector database</p>
           <p>🤖 Powered by OpenAI GPT-4 query generation</p>
-          <p>🧠 BAAI/bge-large-en-v1.5 embedding optimization</p>
+          <p>🧠 1024 Dimension Vector Embeddings</p>
         </div>
       </div>
     </div>
