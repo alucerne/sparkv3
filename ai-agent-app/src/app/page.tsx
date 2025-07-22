@@ -142,8 +142,21 @@ export default function Home() {
 
     return results.map((result, index) => {
       const score = result.score ? ` (Score: ${(result.score * 100).toFixed(1)}%)` : '';
-      const text = result.metadata?.text || result.text || 'No text available';
-      return `${index + 1}. ${text}${score}`;
+      
+      // Try to get the topic and description from the result
+      const topic = result.topic || result.metadata?.topic || 'Unknown Topic';
+      const description = result.description || result.metadata?.description || '';
+      const text = result.metadata?.text || result.text || '';
+      
+      // Build the display text
+      let displayText = topic;
+      if (description) {
+        displayText += `: ${description}`;
+      } else if (text) {
+        displayText += `: ${text}`;
+      }
+      
+      return `${index + 1}. ${displayText}${score}`;
     }).join('\n\n');
   };
 
