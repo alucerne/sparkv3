@@ -10,6 +10,7 @@ interface Message {
   sources?: any[];
   timestamp: Date;
   queries?: string[]; // For storing generated queries
+  searchResults?: any[]; // For storing search results
 }
 
 export default function Home() {
@@ -118,11 +119,13 @@ export default function Home() {
       const searchData = await searchResponse.json();
       
       // Create a message showing the search results
+      const formattedResults = formatSearchResults(searchData.results || []);
       const resultsMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: `🔍 Search Results for: "${query}"\n\n${formatSearchResults(searchData.results || [])}`,
+        content: formattedResults.type === 'no-results' ? formattedResults.message : `🔍 Search Results for: "${query}"`,
         timestamp: new Date(),
+        searchResults: formattedResults.type === 'cards' ? formattedResults.results : undefined,
       };
 
       setMessages(prev => [...prev, resultsMessage]);
@@ -135,29 +138,49 @@ export default function Home() {
     }
   };
 
-  const formatSearchResults = (results: any[]): string => {
+  const formatSearchResults = (results: any[]): any => {
     if (results.length === 0) {
-      return "No relevant audience segments found for this query.";
+      return { type: 'no-results', message: "No relevant audience segments found for this query." };
     }
 
-    return results.map((result, index) => {
-      const score = result.score ? ` (Score: ${(result.score * 100).toFixed(1)}%)` : '';
-      
-      // Try to get the topic and description from the result
-      const topic = result.topic || result.metadata?.topic || 'Unknown Topic';
-      const description = result.description || result.metadata?.description || '';
-      const text = result.metadata?.text || result.text || '';
-      
-      // Build the display text
-      let displayText = topic;
-      if (description) {
-        displayText += `: ${description}`;
-      } else if (text) {
-        displayText += `: ${text}`;
-      }
-      
-      return `${index + 1}. ${displayText}${score}`;
-    }).join('\n\n');
+    return {
+      type: 'cards',
+      results: results.map((result, index) => {
+        const score = result.score ? (result.score * 100).toFixed(1) : '0';
+        
+        // Try to get the topic and description from the result
+        const topic = result.topic || result.metadata?.topic || 'Unknown Topic';
+        const description = result.description || result.metadata?.description || '';
+        const text = result.metadata?.text || result.text || '';
+        
+        // Build the display text
+        let displayText = topic;
+        if (description) {
+          displayText += `: ${description}`;
+        } else if (text) {
+          displayText += `: ${text}`;
+        }
+        
+        return {
+          id: result.segment_id || `result-${index}`,
+          topic: topic,
+          description: description || text || 'No description available',
+          score: score,
+          segmentId: result.segment_id,
+          metadata: result.metadata
+        };
+      })
+    };
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // You could add a toast notification here
+      console.log('Copied to clipboard:', text);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   };
 
   const clearChat = () => {
@@ -254,6 +277,35 @@ export default function Home() {
                       <p className="text-xs text-gray-500 mt-2">
                         Click on any query above to search for relevant audience segments
                       </p>
+                    </div>
+                  )}
+                  
+                  {/* Search Results (for assistant messages) */}
+                  {message.searchResults && message.searchResults.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <p className="text-sm font-semibold text-gray-700 mb-3">🔍 Search Results:</p>
+                      <div className="space-y-3">
+                        {message.searchResults.map((result, index) => (
+                          <div key={result.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <button
+                                  onClick={() => copyToClipboard(result.topic)}
+                                  className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-left"
+                                  title="Click to copy topic name"
+                                >
+                                  📋 {result.topic}
+                                </button>
+                                <p className="text-xs text-gray-600 mt-1">{result.description}</p>
+                                <div className="flex items-center mt-2 space-x-4">
+                                  <span className="text-xs text-gray-500">Score: {result.score}%</span>
+                                  <span className="text-xs text-gray-400">ID: {result.segmentId}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                   
