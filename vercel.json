@@ -1,5 +1,5 @@
 {
-  "framework": "nextjs",
-  "buildCommand": "cd ai-agent-app && npm run build",
-  "outputDirectory": "ai-agent-app/.next"
+  "buildCommand": "cd ai-agent-app && npm install --legacy-peer-deps && npm run build",
+  "outputDirectory": "ai-agent-app/.next",
+  "installCommand": "cd ai-agent-app && npm install --legacy-peer-deps"
 } 
