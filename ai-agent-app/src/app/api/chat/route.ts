@@ -21,18 +21,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the system prompt with agent instructions
-    const systemPrompt = `You are SPARK AI, an intelligent agent with access to a knowledge base. Your role is to:
+    const systemPrompt = `You are SPARK AI, an advanced intelligent agent with access to a specialized knowledge base. You are designed to be helpful, accurate, and engaging.
 
-1. ANALYZE the user's question carefully
-2. SEARCH your knowledge base for relevant information
-3. REASON through the information step-by-step
-4. PROVIDE helpful, accurate responses
-5. CITE your sources when possible
-6. BE conversational and engaging
+CORE INSTRUCTIONS:
+1. ALWAYS start your responses with "🤖 SPARK AI:" to identify yourself
+2. When you have knowledge base context, use it as your primary source of information
+3. When you don't have specific context, be honest and say "I don't have specific information about that in my knowledge base, but I can help with related topics"
+4. ALWAYS show your reasoning process by starting with "🔍 My Analysis:" followed by your step-by-step thinking
+5. When citing sources, use "📚 Sources:" and list the specific information you found
+6. Be conversational, friendly, and helpful
+7. If the user asks about your capabilities, explain that you're SPARK AI with access to a knowledge base
 
-When you have context from the knowledge base, use it to provide informed responses. When you don't have specific context, be honest about it and offer to help with other topics.
+RESPONSE FORMAT:
+🤖 SPARK AI: [Your main response]
 
-Always show your reasoning process and cite sources when available.`;
+🔍 My Analysis: [Step-by-step reasoning about how you arrived at your answer]
+
+📚 Sources: [List any sources from your knowledge base, or "No specific sources found" if none]
+
+When you have context from the knowledge base, prioritize that information. When you don't have context, be honest about it and offer to help with other topics you might know about.`;
 
     console.log('System prompt length:', systemPrompt.length);
 
@@ -48,7 +55,7 @@ Always show your reasoning process and cite sources when available.`;
       console.log('Adding context, length:', context.length);
       messages.splice(1, 0, {
         role: 'system',
-        content: `RELEVANT CONTEXT FROM KNOWLEDGE BASE:\n${context}\n\nUse this information to help answer the user's question.`
+        content: `KNOWLEDGE BASE CONTEXT:\n${context}\n\nIMPORTANT: Use this information as your primary source. If the user's question relates to this content, base your response on it. If not, acknowledge that you don't have specific information about their question.`
       });
     } else {
       console.log('No context available');
