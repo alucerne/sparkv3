@@ -11,9 +11,10 @@ export default function Home() {
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-lg font-semibold mb-4">Status Check</h2>
           <p className="text-gray-600 mb-2">✅ Next.js App: Running</p>
-          <p className="text-gray-600 mb-2">✅ Domain: spark.audiencelab.io</p>
+          <p className="text-gray-600 mb-2">✅ Domain: sparkv3.vercel.app</p>
           <p className="text-gray-600 mb-2">✅ Build: Successful</p>
-          <p className="text-gray-600">✅ Routing: Working</p>
+          <p className="text-gray-600 mb-2">✅ Routing: Working</p>
+          <p className="text-gray-600">🕐 Deployed: {new Date().toISOString()}</p>
         </div>
         <div className="mt-6">
           <a 
