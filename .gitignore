@@ -135,3 +135,4 @@ embeddings_cache/
 api_keys.txt
 secrets.txt
 *.key 
+.vercel
