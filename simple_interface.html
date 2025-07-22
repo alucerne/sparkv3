@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPARK AI - Audience Segment Search</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .search-container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 2rem;
+        }
+
+        .search-input {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .search-input input {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .search-input input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-button {
+            padding: 1rem 2rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .search-button:hover {
+            background: #5a6fd8;
+        }
+
+        .search-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .examples {
+            margin-top: 1rem;
+        }
+
+        .examples p {
+            color: #666;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .example-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .example-button {
+            padding: 0.5rem 1rem;
+            background: #f8f9fa;
+            border: 1px solid #e1e5e9;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .example-button:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 1rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .results h2 {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+
+        .result-item {
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+        }
+
+        .result-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-number {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .result-topic {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .result-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-instant {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-ai {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .result-details {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            color: white;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .search-input {
+                flex-direction: column;
+            }
+            
+            .example-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SPARK AI</h1>
+            <p>Intent-Based Audience Segment Search</p>
+            <p style="font-size: 0.9rem; margin-top: 0.5rem;">Focus on WHAT they want to do, not WHO they are</p>
+        </div>
+
+        <div class="search-container">
+            <div class="search-input">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Enter your intent (e.g., 'learn digital marketing', 'start a business')"
+                    onkeypress="handleKeyPress(event)"
+                >
+                <button id="searchButton" onclick="performSearch()">Search</button>
+            </div>
+            
+            <div class="examples">
+                <p>Try these examples:</p>
+                <div class="example-buttons">
+                    <button class="example-button" onclick="setQuery('learn digital marketing')">learn digital marketing</button>
+                    <button class="example-button" onclick="setQuery('start a business')">start a business</button>
+                    <button class="example-button" onclick="setQuery('lose weight')">lose weight</button>
+                    <button class="example-button" onclick="setQuery('improve productivity')">improve productivity</button>
+                    <button class="example-button" onclick="setQuery('get better sleep')">get better sleep</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Searching for audience segments...</p>
+        </div>
+
+        <div id="results" class="results" style="display: none;">
+            <h2>Top Matching Audience Segments</h2>
+            <div id="resultsList"></div>
+        </div>
+
+        <div class="footer">
+            <p>Powered by SPARK AI • Ultra-fast semantic search</p>
+        </div>
+    </div>
+
+    <script>
+        function setQuery(query) {
+            document.getElementById('searchInput').value = query;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                performSearch();
+            }
+        }
+
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+
+            // Show loading, hide other elements
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('searchButton').disabled = true;
+
+            try {
+                const response = await fetch('http://localhost:8000/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        top_k: 5
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Search failed');
+                }
+
+                const data = await response.json();
+                displayResults(data.results);
+            } catch (error) {
+                console.error('Search error:', error);
+                document.getElementById('error').textContent = 'Failed to search. Please try again.';
+                document.getElementById('error').style.display = 'block';
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('searchButton').disabled = false;
+            }
+        }
+
+        function displayResults(results) {
+            const resultsContainer = document.getElementById('results');
+            const resultsList = document.getElementById('resultsList');
+            
+            resultsList.innerHTML = '';
+            
+            results.forEach((result, index) => {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'result-item';
+                
+                const badgeClass = result.method === 'instant_keyword_match' ? 'badge-instant' : 'badge-ai';
+                const badgeText = result.method === 'instant_keyword_match' ? 'Instant' : 'AI Search';
+                
+                resultItem.innerHTML = `
+                    <div class="result-header">
+                        <div class="result-number">${index + 1}</div>
+                        <div class="result-topic">${result.topic}</div>
+                        <div class="result-badge ${badgeClass}">${badgeText}</div>
+                    </div>
+                    <div class="result-details">
+                        Score: ${(result.score * 100).toFixed(1)}% • ID: ${result.segment_id}
+                        ${result.topic_id !== 'N/A' ? ` • Topic ID: ${result.topic_id}` : ''}
+                    </div>
+                `;
+                
+                resultsList.appendChild(resultItem);
+            });
+            
+            resultsContainer.style.display = 'block';
+        }
+    </script>
+</body>
+</html> 
