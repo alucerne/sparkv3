@@ -65,11 +65,13 @@ serve(async (req) => {
 
     const startTime = Date.now()
 
-    // Step 1: Generate embedding using OpenAI API
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
-    if (!OPENAI_API_KEY) {
+    // Step 1: Generate embedding using BAAI/bge-large-en-v1.5
+    const BGE_API_URL = 'https://api-inference.huggingface.co/models/BAAI/bge-large-en-v1.5'
+    const HF_TOKEN = Deno.env.get('HF_TOKEN') // Hugging Face token for BGE model
+    
+    if (!HF_TOKEN) {
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        JSON.stringify({ error: 'Hugging Face token not configured for BGE model' }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -77,23 +79,25 @@ serve(async (req) => {
       )
     }
 
-    const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
+    // Format query for BGE model (add "Query:" prefix for asymmetric search)
+    const formattedQuery = `Query: ${query}`
+
+    const embeddingResponse = await fetch(BGE_API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${HF_TOKEN}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        input: query,
-        model: 'text-embedding-3-small',
-        dimensions: 1024
+        inputs: formattedQuery,
+        normalize: true
       })
     })
 
     if (!embeddingResponse.ok) {
       const errorText = await embeddingResponse.text()
       return new Response(
-        JSON.stringify({ error: `OpenAI embedding failed: ${errorText}` }),
+        JSON.stringify({ error: `BGE embedding failed: ${errorText}` }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -102,7 +106,25 @@ serve(async (req) => {
     }
 
     const embeddingData = await embeddingResponse.json()
-    const embedding = embeddingData.data[0].embedding
+    
+    // Hugging Face API returns the embedding as a JSON array
+    let embedding = embeddingData
+    
+    // If it's an array of arrays, take the first element
+    if (Array.isArray(embedding) && embedding.length > 0 && Array.isArray(embedding[0])) {
+      embedding = embedding[0]
+    }
+    
+    // Ensure we have a proper 1024-dimensional vector
+    if (!Array.isArray(embedding) || embedding.length !== 1024) {
+      return new Response(
+        JSON.stringify({ error: `Invalid embedding dimensions: ${embedding?.length}, expected 1024` }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
 
     const embeddingTime = Date.now() - startTime
 
@@ -136,14 +158,19 @@ serve(async (req) => {
     const queryTime = totalTime - embeddingTime
 
     // Step 3: Process results
-    const results: SearchResult[] = pineconeData.matches.map((match: any) => ({
-      topic: match.metadata?.topic || 'Unknown',
-      topic_id: match.metadata?.topic_ID || 'Unknown',
-      score: match.score,
-      segment_id: match.id,
-      description: match.metadata?.description,
-      metadata: match.metadata
-    }))
+    const results: SearchResult[] = pineconeData.matches.map((match: any) => {
+      const topic = match.metadata?.topic || 'Unknown';
+      const description = match.metadata?.description || generateDescription(topic);
+      
+      return {
+        topic: topic,
+        topic_id: match.metadata?.topic_ID || 'Unknown',
+        score: match.score,
+        segment_id: match.id,
+        description: description,
+        metadata: match.metadata
+      };
+    })
 
     const response: SearchResponse = {
       results,
@@ -169,4 +196,22 @@ serve(async (req) => {
       }
     )
   }
-}) 
+})
+
+// Helper function to generate descriptions for topics
+function generateDescription(topic: string): string {
+  const descriptions: { [key: string]: string } = {
+    'TikTok Advertising': 'Audience segments interested in TikTok advertising and marketing campaigns',
+    'TikTok Marketing': 'Users engaged with TikTok marketing strategies and content creation',
+    'TikTok For Business': 'Business professionals using TikTok for brand promotion and customer engagement',
+    'TikTok Shop': 'Consumers and businesses active in TikTok e-commerce and shopping features',
+    'TikTok': 'General TikTok users and content creators across various niches',
+    'Social Media Marketing': 'Professionals and businesses focused on social media marketing strategies',
+    'Digital Advertising': 'Audience interested in digital advertising platforms and campaigns',
+    'Content Creation': 'Creators and professionals involved in digital content production',
+    'E-commerce': 'Online retailers and consumers engaged in e-commerce activities',
+    'Influencer Marketing': 'Brands and influencers involved in influencer marketing campaigns'
+  };
+  
+  return descriptions[topic] || `Audience segment focused on ${topic.toLowerCase()} and related activities`;
+} 
