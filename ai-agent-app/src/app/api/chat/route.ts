@@ -10,7 +10,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
+    console.log('Chat request:', { message, contextLength: context?.length, historyLength: history?.length });
+
     if (!OPENAI_API_KEY) {
+      console.error('OpenAI API key not configured');
       return NextResponse.json({ 
         error: 'OpenAI API key not configured',
         response: "I'm sorry, but I'm not properly configured to respond with AI reasoning. Please check the OpenAI API configuration."
@@ -31,6 +34,8 @@ When you have context from the knowledge base, use it to provide informed respon
 
 Always show your reasoning process and cite sources when available.`;
 
+    console.log('System prompt length:', systemPrompt.length);
+
     // Build the conversation history
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -40,11 +45,16 @@ Always show your reasoning process and cite sources when available.`;
 
     // Add context if available
     if (context) {
+      console.log('Adding context, length:', context.length);
       messages.splice(1, 0, {
         role: 'system',
         content: `RELEVANT CONTEXT FROM KNOWLEDGE BASE:\n${context}\n\nUse this information to help answer the user's question.`
       });
+    } else {
+      console.log('No context available');
     }
+
+    console.log('Total messages to OpenAI:', messages.length);
 
     // Call OpenAI API
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -62,6 +72,8 @@ Always show your reasoning process and cite sources when available.`;
       })
     });
 
+    console.log('OpenAI response status:', openaiResponse.status);
+
     if (!openaiResponse.ok) {
       const errorData = await openaiResponse.json();
       console.error('OpenAI API error:', errorData);
@@ -73,6 +85,8 @@ Always show your reasoning process and cite sources when available.`;
 
     const aiData = await openaiResponse.json();
     const aiResponse = aiData.choices[0]?.message?.content || "I couldn't generate a response.";
+
+    console.log('AI response length:', aiResponse.length);
 
     // Extract reasoning and sources from the response
     let reasoning = "I analyzed your question and searched my knowledge base for relevant information.";

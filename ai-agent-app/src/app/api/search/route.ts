@@ -8,8 +8,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
 
+    const SPARK_API_URL = process.env.NEXT_PUBLIC_SPARK_API_URL;
+    
+    if (!SPARK_API_URL) {
+      console.error('SPARK_API_URL not configured');
+      return NextResponse.json({ 
+        error: 'Search API not configured',
+        results: []
+      }, { status: 500 });
+    }
+
+    console.log('Searching for:', query);
+    console.log('Using API URL:', SPARK_API_URL);
+
     // Call the Supabase Edge Function
-    const response = await fetch('https://trapevyvbakrzhmqnvdm.supabase.co/functions/v1/spark-ai-search', {
+    const response = await fetch(SPARK_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -18,18 +31,29 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({ query, top_k: 5 })
     });
 
+    console.log('Search response status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
-      return NextResponse.json({ error: `API call failed: ${errorText}` }, { status: 500 });
+      console.error('Search API error:', errorText);
+      return NextResponse.json({ 
+        error: `API call failed: ${errorText}`,
+        results: []
+      }, { status: 500 });
     }
 
     const data = await response.json();
+    console.log('Search results count:', data.results?.length || 0);
+    
     return NextResponse.json(data);
 
   } catch (error) {
     console.error('Search API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' }, 
+      { 
+        error: 'Internal server error',
+        results: []
+      }, 
       { status: 500 }
     );
   }
