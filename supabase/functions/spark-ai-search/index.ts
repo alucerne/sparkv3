@@ -7,6 +7,11 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 }
 
+// Initialize Supabase client
+const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://trapevyvbakrzhmqnvdm.supabase.co'
+const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyYXBldnl2YmFrcnpobXFudmRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwOTM0NTYsImV4cCI6MjA2ODY2OTQ1Nn0.2bmquNWzujFRcopi_nYigXPD2ybxZ-eObUk3SLtc4s8'
+const supabase = createClient(supabaseUrl, supabaseKey)
+
 interface SearchRequest {
   query: string;
   top_k?: number;
@@ -158,9 +163,57 @@ serve(async (req) => {
     const queryTime = totalTime - embeddingTime
 
     // Step 3: Process results
-    const results: SearchResult[] = pineconeData.matches.map((match: any) => {
+    const results: SearchResult[] = await Promise.all(pineconeData.matches.map(async (match: any) => {
       const topic = match.metadata?.topic || 'Unknown';
-      const description = match.metadata?.description || generateDescription(topic);
+      
+      // Try to get description from Supabase database with improved matching
+      let description = 'No description available';
+      try {
+        // First try exact case-insensitive match
+        let { data: descData, error } = await supabase
+          .from('audience_descriptions')
+          .select('topic_description')
+          .ilike('topic', topic)
+          .limit(1)
+          .single();
+        
+        // If no exact match, try partial matching
+        if (error || !descData) {
+          const { data: partialData, error: partialError } = await supabase
+            .from('audience_descriptions')
+            .select('topic_description')
+            .ilike('topic', `%${topic}%`)
+            .limit(1)
+            .single();
+          
+          if (!partialError && partialData) {
+            descData = partialData;
+          }
+        }
+        
+        // If still no match, try matching without special characters
+        if (!descData) {
+          const cleanTopic = topic.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+          if (cleanTopic && cleanTopic !== topic) {
+            const { data: cleanData, error: cleanError } = await supabase
+              .from('audience_descriptions')
+              .select('topic_description')
+              .ilike('topic', `%${cleanTopic}%`)
+              .limit(1)
+              .single();
+            
+            if (!cleanError && cleanData) {
+              descData = cleanData;
+            }
+          }
+        }
+        
+        if (descData) {
+          description = descData.topic_description;
+        }
+      } catch (e) {
+        console.log(`No description found for topic: ${topic}`);
+      }
       
       return {
         topic: topic,
@@ -170,7 +223,7 @@ serve(async (req) => {
         description: description,
         metadata: match.metadata
       };
-    })
+    }))
 
     const response: SearchResponse = {
       results,
@@ -196,22 +249,4 @@ serve(async (req) => {
       }
     )
   }
-})
-
-// Helper function to generate descriptions for topics
-function generateDescription(topic: string): string {
-  const descriptions: { [key: string]: string } = {
-    'TikTok Advertising': 'Audience segments interested in TikTok advertising and marketing campaigns',
-    'TikTok Marketing': 'Users engaged with TikTok marketing strategies and content creation',
-    'TikTok For Business': 'Business professionals using TikTok for brand promotion and customer engagement',
-    'TikTok Shop': 'Consumers and businesses active in TikTok e-commerce and shopping features',
-    'TikTok': 'General TikTok users and content creators across various niches',
-    'Social Media Marketing': 'Professionals and businesses focused on social media marketing strategies',
-    'Digital Advertising': 'Audience interested in digital advertising platforms and campaigns',
-    'Content Creation': 'Creators and professionals involved in digital content production',
-    'E-commerce': 'Online retailers and consumers engaged in e-commerce activities',
-    'Influencer Marketing': 'Brands and influencers involved in influencer marketing campaigns'
-  };
-  
-  return descriptions[topic] || `Audience segment focused on ${topic.toLowerCase()} and related activities`;
-} 
+}) 
