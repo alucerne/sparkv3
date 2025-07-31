@@ -164,11 +164,11 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
 
       {/* Action Buttons */}
       <div className="flex gap-3 justify-center">
-        <Button
-          onClick={fetchSearchResults}
-          disabled={keywords.length === 0 || isLoading}
-          className="px-6"
-        >
+                  <Button
+            onClick={fetchSearchResults}
+            disabled={keywords.length === 0 || isLoading}
+            className="px-6 bg-blue-700 hover:bg-blue-800 text-white"
+          >
           {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -188,7 +188,7 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
               onClick={fetchSearchResults}
               disabled={isLoading}
               variant="outline"
-              className="px-6"
+              className="px-6 border-blue-700 text-blue-700 hover:bg-blue-50"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Regenerate
@@ -196,7 +196,7 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
             <Button
               onClick={clearAll}
               variant="outline"
-              className="px-6"
+              className="px-6 border-gray-600 text-gray-700 hover:bg-gray-50"
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Clear All
@@ -211,17 +211,17 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="w-5 h-5" />
-              Audience Description
+              Custom Model Description
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                Describe your target audience *
+                Enter your custom model below to be scored *
               </label>
               <Textarea
                 id="description"
-                placeholder="Describe your target audience. What problem do they have? What solution are they looking for? Be specific about their role, industry, or pain points."
+                placeholder="Describe your custom model. What problem does it solve? What solution does it provide? Be specific about the functionality, features, or capabilities."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full min-h-[100px]"
@@ -232,7 +232,7 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
               <Button
                 onClick={generateScores}
                 disabled={!description.trim() || isScoring}
-                className="px-6"
+                className="px-6 bg-blue-700 hover:bg-blue-800 text-white"
               >
                 {isScoring ? (
                   <>
@@ -270,7 +270,7 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-blue-800">Average Relevance Score:</span>
                 <span className="text-lg font-bold text-blue-900">
@@ -278,10 +278,43 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
                 </span>
               </div>
               {overallFeedback && (
-                <div className="text-sm text-blue-800 bg-blue-100 p-3 rounded-md">
-                  <strong>Analysis:</strong> {overallFeedback}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-blue-900">Analysis & Suggestions:</h4>
+                  <ul className="space-y-2">
+                    {overallFeedback.split('.').filter(sentence => sentence.trim().length > 0).map((sentence, index) => (
+                      <li key={index} className="text-sm text-blue-800 flex items-start gap-2">
+                        <span className="text-blue-600 mt-1">•</span>
+                        <span>{sentence.trim()}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Rewrite Suggestions */}
+      {scoredResults.length > 0 && overallFeedback && overallFeedback.toLowerCase().includes('rewrite') && (
+        <Card className="border-green-200 bg-green-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-green-900">
+              <Target className="w-5 h-5" />
+              Suggested Rewrite
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-green-800">
+              {overallFeedback.split('.').filter(sentence => 
+                sentence.toLowerCase().includes('rewrite') || 
+                sentence.toLowerCase().includes('suggest') ||
+                sentence.toLowerCase().includes('try')
+              ).map((sentence, index) => (
+                <p key={index} className="mb-2">
+                  {sentence.trim()}
+                </p>
+              ))}
             </div>
           </CardContent>
         </Card>
