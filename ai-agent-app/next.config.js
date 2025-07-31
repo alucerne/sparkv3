@@ -9,6 +9,25 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Don't bundle server-only packages on the client side
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    
+    // Handle binary files from @xenova/transformers
+    config.module.rules.push({
+      test: /\.node$/,
+      use: 'node-loader',
+    });
+    
+    return config;
+  },
   // Add custom domain configuration
   async headers() {
     return [
