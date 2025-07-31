@@ -338,7 +338,7 @@ export default function Home() {
           {/* Input Area */}
           <div className="border-t border-gray-200 p-4">
             {/* SPARK Mode Selector */}
-            <div className="mb-4">
+            <div className="mb-4 flex justify-start">
               <SparkModeSelector 
                 onSparkModeChange={handleSparkModeChange}
                 defaultValue={sparkMode}
