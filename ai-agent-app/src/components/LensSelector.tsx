@@ -57,22 +57,26 @@ export default function LensSelector({ onLensSelected }: LensSelectorProps) {
   const [validation, setValidation] = useState<PerplexityResponse | null>(null);
   const [isValidating, setIsValidating] = useState(false);
 
-  const handleTopicAnalysis = async () => {
-    if (!topic.trim()) return;
+  const handleLensSelection = async (lens: string) => {
+    setSelected(lens);
     
-    setIsValidating(true);
-    try {
-      const result = await validateLensSelection(topic.trim());
-      setValidation(result);
-    } catch (error) {
-      console.error('Validation error:', error);
-    } finally {
-      setIsValidating(false);
+    if (topic.trim()) {
+      setIsValidating(true);
+      try {
+        const result = await validateLensSelection(topic.trim(), lens);
+        setValidation(result);
+      } catch (error) {
+        console.error('Validation error:', error);
+      } finally {
+        setIsValidating(false);
+      }
+    } else {
+      // If no topic entered, just select the lens
+      onLensSelected(lens, topic.trim());
     }
   };
 
-  const handleClick = (lens: string) => {
-    setSelected(lens);
+  const handleFinalSelection = (lens: string) => {
     onLensSelected(lens, topic.trim(), validation || undefined);
   };
 
@@ -98,11 +102,10 @@ export default function LensSelector({ onLensSelected }: LensSelectorProps) {
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
-              onClick={handleTopicAnalysis}
-              disabled={!topic.trim() || isValidating}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!topic.trim()}
+              className="px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed"
             >
-              {isValidating ? 'Analyzing...' : 'Analyze'}
+              Enter topic first, then select a lens
             </button>
           </div>
         </div>
@@ -113,18 +116,18 @@ export default function LensSelector({ onLensSelected }: LensSelectorProps) {
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-3">AI Analysis Results</h3>
           
-          {/* Best Match */}
+          {/* Selected Lens Analysis */}
           <div className="mb-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">🎯 Best Match</h4>
-            <Card className="border-green-200 bg-green-50">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">✅ Your Selection: {validation.lens}</h4>
+            <Card className="border-blue-200 bg-blue-50">
               <CardContent className="p-4">
                 <div className="flex items-start space-x-3">
-                  <div className="p-2 rounded-lg bg-green-100">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  <div className="p-2 rounded-lg bg-blue-100">
+                    <CheckCircle className="w-5 h-5 text-blue-600" />
                   </div>
                   <div className="flex-1">
-                    <h5 className="font-semibold text-green-900">{validation.lens}</h5>
-                    <p className="text-sm text-green-700 mt-1">{validation.explanation}</p>
+                    <h5 className="font-semibold text-blue-900">{validation.lens}</h5>
+                    <p className="text-sm text-blue-700 mt-1">{validation.explanation}</p>
                   </div>
                 </div>
               </CardContent>
@@ -134,10 +137,11 @@ export default function LensSelector({ onLensSelected }: LensSelectorProps) {
           {/* Alternative Options */}
           {validation.alternatives && validation.alternatives.length > 0 && (
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">💡 Alternative Options</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">💡 Alternative Lens Options</h4>
+              <p className="text-xs text-gray-600 mb-3">Click any option below to select it as your final choice:</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {validation.alternatives.map((alt, index) => (
-                  <Card key={index} className="border-gray-200 hover:border-gray-300 cursor-pointer" onClick={() => handleClick(alt.lens)}>
+                  <Card key={index} className="border-gray-200 hover:border-gray-300 cursor-pointer" onClick={() => handleFinalSelection(alt.lens)}>
                     <CardContent className="p-3">
                       <div className="flex items-start space-x-2">
                         <div className="p-1.5 rounded-lg bg-gray-100">
@@ -164,13 +168,12 @@ export default function LensSelector({ onLensSelected }: LensSelectorProps) {
         {lenses.map((lens) => {
           const IconComponent = lens.icon;
           const isSelected = selected === lens.name;
-          const isBestMatch = validation?.lens === lens.name;
-          const isAlternative = validation?.alternatives?.some(alt => alt.lens === lens.name);
+          const isAnalyzed = validation && (validation.lens === lens.name || validation.alternatives?.some(alt => alt.lens === lens.name));
           
           return (
             <Card
               key={lens.name}
-              onClick={() => !isValidating && handleClick(lens.name)}
+              onClick={() => !isValidating && handleLensSelection(lens.name)}
               className={`transition-all duration-200 hover:shadow-md ${
                 isValidating 
                   ? 'cursor-not-allowed opacity-50' 
@@ -178,10 +181,8 @@ export default function LensSelector({ onLensSelected }: LensSelectorProps) {
               } ${
                 isSelected 
                   ? 'border-blue-500 bg-blue-50 shadow-md' 
-                  : isBestMatch
+                  : isAnalyzed
                   ? 'border-green-500 bg-green-50'
-                  : isAlternative
-                  ? 'border-amber-500 bg-amber-50'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
