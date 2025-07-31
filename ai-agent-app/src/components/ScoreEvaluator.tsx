@@ -2,23 +2,24 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, ExternalLink, TrendingUp, AlertCircle } from 'lucide-react';
+import { Loader2, TrendingUp, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
+import KeywordInput from './KeywordInput';
+import SearchResultCard from './SearchResultCard';
 
 interface SearchResult {
   title: string;
   link: string;
-  score: number;
+  score?: number;
   snippet: string;
+  position?: number;
 }
 
-interface ScoreResponse {
-  scoredResults: SearchResult[];
-  feedback: string;
-  averageScore: number;
+interface KeywordSearchResponse {
+  results: SearchResult[];
   totalResults: number;
+  query: string;
+  searchMetadata: any;
 }
 
 interface ScoreEvaluatorProps {
@@ -26,211 +27,166 @@ interface ScoreEvaluatorProps {
 }
 
 export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps) {
-  const [topic, setTopic] = useState('');
-  const [description, setDescription] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [keywords, setKeywords] = useState<string[]>([]);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [feedback, setFeedback] = useState<string>('');
-  const [averageScore, setAverageScore] = useState<number>(0);
-  const [totalResults, setTotalResults] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>('');
 
-  const handleGenerateScore = async () => {
-    if (!topic.trim() || !description.trim()) {
+  const handleKeywordsChange = (newKeywords: string[]) => {
+    setKeywords(newKeywords);
+    setError('');
+  };
+
+  const fetchSearchResults = async () => {
+    if (keywords.length === 0) {
+      setError('Please enter at least one keyword');
       return;
     }
 
     setIsLoading(true);
+    setError('');
     
     try {
-      const response = await fetch('/api/score-description', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          topic: topic.trim(),
-          description: description.trim(),
-        }),
-      });
+      const joinedKeywords = keywords.join(' ');
+      const response = await fetch(`/api/fetch-keyword-results?keywords=${encodeURIComponent(joinedKeywords)}`);
 
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
 
-      const data: ScoreResponse = await response.json();
-      setSearchResults(data.scoredResults);
-      setFeedback(data.feedback);
-      setAverageScore(data.averageScore);
-      setTotalResults(data.totalResults);
+      const data: KeywordSearchResponse = await response.json();
+      setSearchResults(data.results);
       
       if (onScoreGenerated) {
-        onScoreGenerated(data.scoredResults);
+        onScoreGenerated(data.results);
       }
     } catch (error) {
-      console.error('Score generation error:', error);
-      
-      // Show error message to user instead of silent fallback
-      setFeedback(`Error: ${error instanceof Error ? error.message : 'Failed to generate scores. Please try again.'}`);
-      setSearchResults([]);
-      setAverageScore(0);
-      setTotalResults(0);
+      console.error('Search results error:', error);
+      setError(`Failed to fetch search results: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getConfidenceColor = (score: number) => {
-    if (score >= 0.8) return 'text-green-600 bg-green-100';
-    if (score >= 0.6) return 'text-yellow-600 bg-yellow-100';
-    return 'text-red-600 bg-red-100';
-  };
-
-  const getConfidenceLabel = (score: number) => {
-    if (score >= 0.8) return 'High';
-    if (score >= 0.6) return 'Medium';
-    return 'Low';
+  const clearAll = () => {
+    setKeywords([]);
+    setSearchResults([]);
+    setError('');
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">LLM Audience Targeting Validator</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Keyword-Based Search Results</h2>
         <p className="text-gray-600">
-          Test how well your audience description will work for LLM-based audience targeting
+          Enter keywords to fetch and analyze search results for audience targeting validation
         </p>
       </div>
 
-      {/* Input Form */}
+      {/* Keyword Input */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
-            Audience Description Input
+            Keyword Input
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-2">
-              Search Topic *
-            </label>
-            <Input
-              id="topic"
-              type="text"
-              placeholder="e.g., Email deliverability, Cold email outreach, B2B sales automation..."
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              className="w-full"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-              Audience Description *
-            </label>
-            <Textarea
-              id="description"
-              placeholder="Describe your target audience. What problem do they have? What solution are they looking for? Be specific about their role, industry, or pain points."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full min-h-[100px]"
-            />
-          </div>
-
-          <Button
-            onClick={handleGenerateScore}
-            disabled={!topic.trim() || !description.trim() || isLoading}
-            className="w-full"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Validating Audience Targeting...
-              </>
-            ) : (
-              <>
-                <TrendingUp className="w-4 h-4 mr-2" />
-                Validate Audience Description
-              </>
-            )}
-          </Button>
+        <CardContent>
+          <KeywordInput onKeywordsChange={handleKeywordsChange} maxKeywords={10} />
         </CardContent>
       </Card>
 
-      {/* Results Summary */}
+      {/* Action Buttons */}
+      <div className="flex gap-3 justify-center">
+        <Button
+          onClick={fetchSearchResults}
+          disabled={keywords.length === 0 || isLoading}
+          className="px-6"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Fetching Results...
+            </>
+          ) : (
+            <>
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Generate Results
+            </>
+          )}
+        </Button>
+
+        {searchResults.length > 0 && (
+          <>
+            <Button
+              onClick={fetchSearchResults}
+              disabled={isLoading}
+              variant="outline"
+              className="px-6"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Regenerate
+            </Button>
+            <Button
+              onClick={clearAll}
+              variant="outline"
+              className="px-6"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Clear All
+            </Button>
+          </>
+        )}
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <p className="text-red-800 text-sm">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Search Results */}
       {searchResults.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Audience Targeting Validation Results</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Search Results ({searchResults.length} found)
+            </h3>
             <div className="text-sm text-gray-600">
-              Average Relevance: <span className="font-medium">{Math.round(averageScore * 100)}%</span> 
-              ({totalResults} search results analyzed)
+              Query: <span className="font-medium">{keywords.join(' ')}</span>
             </div>
           </div>
           
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-4">
             {searchResults.map((result, index) => (
-              <Card key={index} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-start gap-3">
-                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${getConfidenceColor(result.score)}`}>
-                          {getConfidenceLabel(result.score)} Relevance ({Math.round(result.score * 100)}%)
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900 mb-1">{result.title}</h4>
-                          <p className="text-sm text-gray-600 mb-2">{result.snippet}</p>
-                          <a
-                            href={result.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                          >
-                            {result.link}
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <SearchResultCard 
+                key={index} 
+                result={result} 
+                index={index}
+              />
             ))}
           </div>
         </div>
       )}
 
-      {/* API Feedback Section */}
-      {feedback && (
-        <Card className="border-yellow-200 bg-yellow-50">
+      {/* Instructions */}
+      {searchResults.length === 0 && !isLoading && (
+        <Card className="border-blue-200 bg-blue-50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-yellow-900">
+            <CardTitle className="flex items-center gap-2 text-blue-900">
               <AlertCircle className="w-5 h-5" />
-              AI Feedback
+              How to Use
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-yellow-800 leading-relaxed">
-              {feedback}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* General Tips Section */}
-      {searchResults.length > 0 && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-blue-900">
-            <AlertCircle className="w-5 h-5" />
-            Understanding Audience Targeting Scores
-          </CardTitle>
-          </CardHeader>
-          <CardContent>
             <div className="space-y-2 text-sm text-blue-800">
-              <p>• <strong>High relevance</strong> (≥80%) means your description will work well for LLM audience targeting</p>
-              <p>• <strong>Medium relevance</strong> (60-79%) suggests your description needs refinement for better targeting</p>
-              <p>• <strong>Low relevance</strong> (&lt;60%) indicates your description is too broad for effective audience targeting</p>
+              <p>• <strong>Enter keywords</strong> related to your target audience or topic</p>
+              <p>• <strong>Press Enter or comma</strong> to add each keyword as a bubble</p>
+              <p>• <strong>Click "Generate Results"</strong> to fetch search results from Google</p>
+              <p>• <strong>Review the results</strong> to see what content your audience is consuming</p>
             </div>
           </CardContent>
         </Card>
