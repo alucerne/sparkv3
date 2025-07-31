@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import SparkModeSelector from '@/components/SparkModeSelector';
+import LensSelector from '@/components/LensSelector';
 
 interface Message {
   id: string;
@@ -22,6 +23,8 @@ export default function Home() {
   const [selectedQuery, setSelectedQuery] = useState<string>('');
   const [showQuerySelection, setShowQuerySelection] = useState(false);
   const [sparkMode, setSparkMode] = useState<'find' | 'custom'>('find');
+  const [showLensSelector, setShowLensSelector] = useState(false);
+  const [selectedLens, setSelectedLens] = useState<string>('');
 
   const handleSendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -190,12 +193,40 @@ export default function Home() {
     setError('');
     setShowQuerySelection(false);
     setSelectedQuery('');
+    setShowLensSelector(false);
+    setSelectedLens('');
+  };
+
+  const handleLensSelected = (lens: string) => {
+    setSelectedLens(lens);
+    console.log('Selected lens:', lens);
+    
+    // Add a message to the chat showing the selected lens
+    const lensMessage: Message = {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: `Great! You've selected the **${lens}** lens for creating your custom model. Now describe what you want to create with this perspective.`,
+      timestamp: new Date(),
+    };
+    
+    setMessages(prev => [...prev, lensMessage]);
+    setShowLensSelector(false);
   };
 
   const handleSparkModeChange = (mode: 'find' | 'custom') => {
     setSparkMode(mode);
     console.log('SPARK Mode changed to:', mode);
-    // TODO: Implement different behavior based on mode
+    
+    if (mode === 'custom') {
+      // Show lens selector when "Create Custom Model" is selected
+      setShowLensSelector(true);
+      setShowQuerySelection(false);
+      setSelectedQuery('');
+    } else {
+      // Hide lens selector when switching back to "Find Audience"
+      setShowLensSelector(false);
+      setSelectedLens('');
+    }
   };
 
   return (
@@ -315,6 +346,14 @@ export default function Home() {
                 </div>
               </div>
             ))}
+            
+            {showLensSelector && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 rounded-lg p-4 w-full">
+                  <LensSelector onLensSelected={handleLensSelected} />
+                </div>
+              </div>
+            )}
             
             {loading && (
               <div className="flex justify-start">
