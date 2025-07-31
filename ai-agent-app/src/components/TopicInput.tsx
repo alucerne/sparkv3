@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { generateCustomModel, CustomModelResponse } from '@/lib/customModelPrompt';
-import { CheckCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Loader2, Copy, Check } from 'lucide-react';
 
 interface TopicInputProps {
   topic: string;
@@ -14,6 +14,17 @@ interface TopicInputProps {
 export default function TopicInput({ topic, lens, onComplete }: TopicInputProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [customModelResult, setCustomModelResult] = useState<CustomModelResponse | null>(null);
+  const [copiedItem, setCopiedItem] = useState<string | null>(null);
+
+  const handleCopy = async (text: string, itemName: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedItem(itemName);
+      setTimeout(() => setCopiedItem(null), 2000);
+    } catch (error) {
+      console.error('Failed to copy text:', error);
+    }
+  };
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -68,44 +79,83 @@ export default function TopicInput({ topic, lens, onComplete }: TopicInputProps)
           <div className="space-y-3">
             <h5 className="text-sm font-medium text-gray-700">Recommended Topic Names:</h5>
             <div className="grid grid-cols-1 gap-3">
-              <Card className="border-green-200 bg-green-50">
+              <Card className="border-green-200 bg-green-50 hover:shadow-md transition-shadow">
                 <CardContent className="p-3">
-                  <div className="flex items-start space-x-2">
-                    <div className="p-1.5 rounded-lg bg-green-100">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-2 flex-1">
+                      <div className="p-1.5 rounded-lg bg-green-100">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h6 className="font-medium text-green-900 text-sm">Option 1</h6>
+                        <p className="text-sm text-green-700 mt-1">{customModelResult.name1}</p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h6 className="font-medium text-green-900 text-sm">Option 1</h6>
-                      <p className="text-sm text-green-700 mt-1">{customModelResult.name1}</p>
-                    </div>
+                    <button
+                      onClick={() => handleCopy(customModelResult.name1, 'name1')}
+                      className="p-2 rounded-lg hover:bg-green-100 transition-colors"
+                      title="Copy to clipboard"
+                    >
+                      {copiedItem === 'name1' ? (
+                        <Check className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-green-600" />
+                      )}
+                    </button>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-blue-200 bg-blue-50">
+              <Card className="border-blue-200 bg-blue-50 hover:shadow-md transition-shadow">
                 <CardContent className="p-3">
-                  <div className="flex items-start space-x-2">
-                    <div className="p-1.5 rounded-lg bg-blue-100">
-                      <CheckCircle className="w-4 h-4 text-blue-600" />
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-2 flex-1">
+                      <div className="p-1.5 rounded-lg bg-blue-100">
+                        <CheckCircle className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h6 className="font-medium text-blue-900 text-sm">Option 2</h6>
+                        <p className="text-sm text-blue-700 mt-1">{customModelResult.name2}</p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h6 className="font-medium text-blue-900 text-sm">Option 2</h6>
-                      <p className="text-sm text-blue-700 mt-1">{customModelResult.name2}</p>
-                    </div>
+                    <button
+                      onClick={() => handleCopy(customModelResult.name2, 'name2')}
+                      className="p-2 rounded-lg hover:bg-blue-100 transition-colors"
+                      title="Copy to clipboard"
+                    >
+                      {copiedItem === 'name2' ? (
+                        <Check className="w-4 h-4 text-blue-600" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-blue-600" />
+                      )}
+                    </button>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-purple-200 bg-purple-50">
+              <Card className="border-purple-200 bg-purple-50 hover:shadow-md transition-shadow">
                 <CardContent className="p-3">
-                  <div className="flex items-start space-x-2">
-                    <div className="p-1.5 rounded-lg bg-purple-100">
-                      <CheckCircle className="w-4 h-4 text-purple-600" />
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-2 flex-1">
+                      <div className="p-1.5 rounded-lg bg-purple-100">
+                        <CheckCircle className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h6 className="font-medium text-purple-900 text-sm">Option 3</h6>
+                        <p className="text-sm text-purple-700 mt-1">{customModelResult.name3}</p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h6 className="font-medium text-purple-900 text-sm">Option 3</h6>
-                      <p className="text-sm text-purple-700 mt-1">{customModelResult.name3}</p>
-                    </div>
+                    <button
+                      onClick={() => handleCopy(customModelResult.name3, 'name3')}
+                      className="p-2 rounded-lg hover:bg-purple-100 transition-colors"
+                      title="Copy to clipboard"
+                    >
+                      {copiedItem === 'name3' ? (
+                        <Check className="w-4 h-4 text-purple-600" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-purple-600" />
+                      )}
+                    </button>
                   </div>
                 </CardContent>
               </Card>
@@ -115,11 +165,26 @@ export default function TopicInput({ topic, lens, onComplete }: TopicInputProps)
           {/* Description */}
           <div className="space-y-3">
             <h5 className="text-sm font-medium text-gray-700">Topic Description:</h5>
-            <Card className="border-gray-200 bg-gray-50">
+            <Card className="border-gray-200 bg-gray-50 hover:shadow-md transition-shadow">
               <CardContent className="p-4">
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  {customModelResult.description}
-                </p>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {customModelResult.description}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleCopy(customModelResult.description, 'description')}
+                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors ml-3 flex-shrink-0"
+                    title="Copy to clipboard"
+                  >
+                    {copiedItem === 'description' ? (
+                      <Check className="w-4 h-4 text-gray-600" />
+                    ) : (
+                      <Copy className="w-4 h-4 text-gray-600" />
+                    )}
+                  </button>
+                </div>
               </CardContent>
             </Card>
           </div>
