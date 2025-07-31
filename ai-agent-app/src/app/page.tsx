@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import SparkModeSelector from '@/components/SparkModeSelector';
 import LensSelector from '@/components/LensSelector';
+import TopicInput from '@/components/TopicInput';
+import { CustomModelResponse } from '@/lib/customModelPrompt';
 
 
 interface Message {
@@ -26,6 +28,9 @@ export default function Home() {
   const [sparkMode, setSparkMode] = useState<'find' | 'custom'>('find');
   const [showLensSelector, setShowLensSelector] = useState(false);
   const [selectedLens, setSelectedLens] = useState<string>('');
+  const [showTopicInput, setShowTopicInput] = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState<string>('');
+  const [customModelResult, setCustomModelResult] = useState<CustomModelResponse | null>(null);
 
   const handleSendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -200,6 +205,7 @@ export default function Home() {
 
   const handleLensSelected = (lens: string, topic: string, subtopics?: string[]) => {
     setSelectedLens(lens);
+    setSelectedTopic(topic);
     console.log('Selected lens:', lens, 'Topic:', topic, 'Subtopics:', subtopics);
     
     let content = `Great! You've selected the **${lens}** lens for creating your custom model.`;
@@ -213,9 +219,9 @@ export default function Home() {
       subtopics.forEach((subtopic, index) => {
         content += `\n${index + 1}. ${subtopic}`;
       });
-      content += `\n\nChoose one of these subtopics or describe your own focus area.`;
+      content += `\n\nNow let's generate your custom model with topic names and description.`;
     } else {
-      content += `\n\nNow describe what you want to create with this perspective.`;
+      content += `\n\nNow let's generate your custom model with topic names and description.`;
     }
     
     // Add a message to the chat showing the selected lens
@@ -228,6 +234,29 @@ export default function Home() {
     
     setMessages(prev => [...prev, lensMessage]);
     setShowLensSelector(false);
+    setShowTopicInput(true);
+  };
+
+  const handleCustomModelComplete = (result: CustomModelResponse) => {
+    setCustomModelResult(result);
+    
+    let content = `🎉 **Custom Model Generated Successfully!**\n\n`;
+    content += `**Topic Names:**\n`;
+    content += `1. ${result.name1}\n`;
+    content += `2. ${result.name2}\n`;
+    content += `3. ${result.name3}\n\n`;
+    content += `**Description:**\n${result.description}\n\n`;
+    content += `Your custom model is ready for audience modeling!`;
+    
+    const customModelMessage: Message = {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: content,
+      timestamp: new Date(),
+    };
+    
+    setMessages(prev => [...prev, customModelMessage]);
+    setShowTopicInput(false);
   };
 
   const handleSparkModeChange = (mode: 'find' | 'custom') => {
@@ -368,6 +397,18 @@ export default function Home() {
               <div className="flex justify-start">
                 <div className="bg-gray-100 rounded-lg p-4 w-full">
                   <LensSelector onLensSelected={handleLensSelected} />
+                </div>
+              </div>
+            )}
+
+            {showTopicInput && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 rounded-lg p-4 w-full">
+                  <TopicInput 
+                    topic={selectedTopic}
+                    lens={selectedLens}
+                    onComplete={handleCustomModelComplete}
+                  />
                 </div>
               </div>
             )}
