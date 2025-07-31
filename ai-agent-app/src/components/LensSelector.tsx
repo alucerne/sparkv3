@@ -57,24 +57,23 @@ export default function LensSelector({ onLensSelected }: LensSelectorProps) {
   const [validation, setValidation] = useState<PerplexityResponse | null>(null);
   const [isValidating, setIsValidating] = useState(false);
 
-  const handleClick = async (lens: string) => {
-    setSelected(lens);
+  const handleTopicAnalysis = async () => {
+    if (!topic.trim()) return;
     
-    if (topic.trim()) {
-      setIsValidating(true);
-      try {
-        const result = await validateLensSelection(topic.trim(), lens);
-        setValidation(result);
-        onLensSelected(lens, topic.trim(), result);
-      } catch (error) {
-        console.error('Validation error:', error);
-        onLensSelected(lens, topic.trim());
-      } finally {
-        setIsValidating(false);
-      }
-    } else {
-      onLensSelected(lens, topic.trim());
+    setIsValidating(true);
+    try {
+      const result = await validateLensSelection(topic.trim());
+      setValidation(result);
+    } catch (error) {
+      console.error('Validation error:', error);
+    } finally {
+      setIsValidating(false);
     }
+  };
+
+  const handleClick = (lens: string) => {
+    setSelected(lens);
+    onLensSelected(lens, topic.trim(), validation || undefined);
   };
 
   return (
@@ -90,30 +89,71 @@ export default function LensSelector({ onLensSelected }: LensSelectorProps) {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             What topic are you creating a model for?
           </label>
-          <input
-            type="text"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            placeholder="e.g., Domain warm-up rotation, Cold email deliverability..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="e.g., Nike, Domain warm-up rotation, Cold email deliverability..."
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={handleTopicAnalysis}
+              disabled={!topic.trim() || isValidating}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isValidating ? 'Analyzing...' : 'Analyze'}
+            </button>
+          </div>
         </div>
       </div>
       
-      {/* Validation Result */}
+      {/* Perplexity Analysis Results */}
       {validation && (
-        <div className="mb-4 p-3 rounded-lg border">
-          {validation.lens === selected ? (
-            <div className="flex items-center gap-2 text-green-700 bg-green-50 border-green-200">
-              <CheckCircle className="w-4 h-4" />
-              <span className="text-sm font-medium">Perfect match!</span>
-            </div>
-          ) : (
-            <div className="flex items-start gap-2 text-amber-700 bg-amber-50 border-amber-200">
-              <AlertCircle className="w-4 h-4 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium">Recommended: {validation.lens}</p>
-                <p className="text-amber-600">{validation.explanation}</p>
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">AI Analysis Results</h3>
+          
+          {/* Best Match */}
+          <div className="mb-4">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">🎯 Best Match</h4>
+            <Card className="border-green-200 bg-green-50">
+              <CardContent className="p-4">
+                <div className="flex items-start space-x-3">
+                  <div className="p-2 rounded-lg bg-green-100">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h5 className="font-semibold text-green-900">{validation.lens}</h5>
+                    <p className="text-sm text-green-700 mt-1">{validation.explanation}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Alternative Options */}
+          {validation.alternatives && validation.alternatives.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">💡 Alternative Options</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {validation.alternatives.map((alt, index) => (
+                  <Card key={index} className="border-gray-200 hover:border-gray-300 cursor-pointer" onClick={() => handleClick(alt.lens)}>
+                    <CardContent className="p-3">
+                      <div className="flex items-start space-x-2">
+                        <div className="p-1.5 rounded-lg bg-gray-100">
+                          <AlertCircle className="w-4 h-4 text-gray-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h5 className="font-medium text-gray-900 text-sm">{alt.lens}</h5>
+                          <p className="text-xs text-gray-600 mt-1">{alt.explanation}</p>
+                          <div className="mt-1">
+                            <span className="text-xs text-gray-500">Confidence: {alt.confidence}/10</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
           )}
@@ -124,6 +164,8 @@ export default function LensSelector({ onLensSelected }: LensSelectorProps) {
         {lenses.map((lens) => {
           const IconComponent = lens.icon;
           const isSelected = selected === lens.name;
+          const isBestMatch = validation?.lens === lens.name;
+          const isAlternative = validation?.alternatives?.some(alt => alt.lens === lens.name);
           
           return (
             <Card
@@ -136,6 +178,10 @@ export default function LensSelector({ onLensSelected }: LensSelectorProps) {
               } ${
                 isSelected 
                   ? 'border-blue-500 bg-blue-50 shadow-md' 
+                  : isBestMatch
+                  ? 'border-green-500 bg-green-50'
+                  : isAlternative
+                  ? 'border-amber-500 bg-amber-50'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
