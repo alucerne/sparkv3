@@ -9,6 +9,8 @@ interface SearchResult {
   snippet: string;
   link: string;
   position?: number;
+  score?: number;
+  feedback?: string;
 }
 
 interface SearchResultCardProps {
@@ -29,6 +31,18 @@ export default function SearchResultCard({ result, index }: SearchResultCardProp
     } catch {
       return url;
     }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 0.8) return 'text-green-600 bg-green-100';
+    if (score >= 0.6) return 'text-yellow-600 bg-yellow-100';
+    return 'text-red-600 bg-red-100';
+  };
+
+  const getScoreLabel = (score: number) => {
+    if (score >= 0.8) return 'High';
+    if (score >= 0.6) return 'Medium';
+    return 'Low';
   };
 
   return (
@@ -62,12 +76,28 @@ export default function SearchResultCard({ result, index }: SearchResultCardProp
           <span className="text-xs text-gray-500 font-medium">
             {getDomainFromUrl(result.link)}
           </span>
-          {result.position && (
-            <span className="text-xs text-gray-400">
-              Position: {result.position}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {result.score !== undefined && (
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(result.score)}`}>
+                {getScoreLabel(result.score)} ({Math.round(result.score * 100)}%)
+              </span>
+            )}
+            {result.position && (
+              <span className="text-xs text-gray-400">
+                Position: {result.position}
+              </span>
+            )}
+          </div>
         </div>
+        
+        {/* Feedback Section */}
+        {result.feedback && (
+          <div className="mt-3 p-3 bg-gray-50 rounded-md border-l-4 border-blue-400">
+            <p className="text-xs text-gray-700 leading-relaxed">
+              <strong>Analysis:</strong> {result.feedback}
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

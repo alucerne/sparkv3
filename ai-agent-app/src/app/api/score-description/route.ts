@@ -9,46 +9,30 @@ const hf = new HfInference(HF_API_KEY);
 
 export async function POST(request: NextRequest) {
   try {
-    const { topic, description } = await request.json();
+    const { description, searchResults } = await request.json();
 
-    if (!topic || !description) {
+    if (!description || !searchResults || !Array.isArray(searchResults)) {
       return NextResponse.json(
-        { error: 'Topic and description are required' },
+        { error: 'Description and searchResults array are required' },
         { status: 400 }
       );
     }
 
-    // Query SearchAPI.io with the topic
-    const query = encodeURIComponent(topic);
-    const searchUrl = `https://www.searchapi.io/api/v1/search?engine=google&q=${query}&api_key=${SEARCH_API_KEY}`;
-    console.log('SearchAPI URL:', searchUrl);
-    
-    const searchRes = await fetch(searchUrl);
-    
-    if (!searchRes.ok) {
-      const errorText = await searchRes.text();
-      console.error('SearchAPI error response:', errorText);
-      throw new Error(`SearchAPI error: ${searchRes.status} - ${errorText}`);
-    }
-    
-    const searchData = await searchRes.json();
-    console.log('SearchAPI response structure:', Object.keys(searchData));
-    console.log('Number of results:', searchData.organic_results?.length || 0);
-
-    // Extract and filter results
-    const results = (searchData.organic_results || [])
+    // Use the provided search results instead of fetching new ones
+    const results = searchResults
       .slice(0, 20)
       .map((r: any) => ({
         title: r.title,
         snippet: r.snippet,
         link: r.link,
+        position: r.position,
       }))
       .filter((r: any) => r.title && r.snippet);
 
     if (results.length === 0) {
       return NextResponse.json(
-        { error: 'No search results found' },
-        { status: 404 }
+        { error: 'No valid search results provided' },
+        { status: 400 }
       );
     }
 
@@ -65,7 +49,8 @@ export async function POST(request: NextRequest) {
 
     // Use cross-encoder model for reranking (better for this use case)
     const scoredResults = await Promise.all(
-      rerankPairs.map(async ([query, passage]: [string, string], idx: number) => {
+      rerankPairs.map(async (pair: any[], idx: number) => {
+        const [query, passage] = pair as [string, string];
         try {
           // Use a cross-encoder model for reranking
           const result = await hf.sentenceSimilarity({
@@ -80,9 +65,20 @@ export async function POST(request: NextRequest) {
           const relevanceScore = Array.isArray(result) ? result[0] : result;
           const normalizedScore = Math.max(0, Math.min(1, relevanceScore));
           
+          // Generate individual feedback for this result
+          let feedback = '';
+          if (normalizedScore >= 0.8) {
+            feedback = '✅ High relevance: Strong alignment with your audience description. This content directly addresses the problems and solutions your audience is seeking.';
+          } else if (normalizedScore >= 0.6) {
+            feedback = '⚠️ Medium relevance: Some alignment with your audience, but could be more specific. Consider refining your description to target more precise search intent.';
+          } else {
+            feedback = '❌ Low relevance: Poor alignment with your audience description. This content may not effectively reach your target audience. Consider using more specific technical terms or industry keywords.';
+          }
+          
           return {
             ...results[idx],
             score: normalizedScore,
+            feedback,
           };
         } catch (error) {
           console.error('Reranker error for result', idx, error);
@@ -99,9 +95,18 @@ export async function POST(request: NextRequest) {
           
           const fallbackScore = descriptionWords.length > 0 ? matches / descriptionWords.length : 0.5;
           
+          // Generate fallback feedback
+          let feedback = '';
+          if (fallbackScore >= 0.6) {
+            feedback = '⚠️ Keyword-based score: Some keyword overlap detected, but semantic analysis unavailable. Consider using more specific technical terms.';
+          } else {
+            feedback = '❌ Low keyword match: Limited overlap with your description. Consider using more relevant industry terms and specific problem statements.';
+          }
+          
           return {
             ...results[idx],
             score: fallbackScore,
+            feedback,
           };
         }
       })

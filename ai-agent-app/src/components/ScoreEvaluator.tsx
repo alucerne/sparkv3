@@ -3,7 +3,9 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, TrendingUp, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2, TrendingUp, AlertCircle, RefreshCw, Trash2, Target, BarChart3 } from 'lucide-react';
 import KeywordInput from './KeywordInput';
 import SearchResultCard from './SearchResultCard';
 
@@ -13,6 +15,7 @@ interface SearchResult {
   score?: number;
   snippet: string;
   position?: number;
+  feedback?: string;
 }
 
 interface KeywordSearchResponse {
@@ -22,6 +25,13 @@ interface KeywordSearchResponse {
   searchMetadata: any;
 }
 
+interface ScoreResponse {
+  scoredResults: SearchResult[];
+  feedback: string;
+  averageScore: number;
+  totalResults: number;
+}
+
 interface ScoreEvaluatorProps {
   onScoreGenerated?: (results: SearchResult[]) => void;
 }
@@ -29,8 +39,13 @@ interface ScoreEvaluatorProps {
 export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps) {
   const [keywords, setKeywords] = useState<string[]>([]);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [scoredResults, setScoredResults] = useState<SearchResult[]>([]);
+  const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isScoring, setIsScoring] = useState(false);
   const [error, setError] = useState<string>('');
+  const [averageScore, setAverageScore] = useState<number>(0);
+  const [overallFeedback, setOverallFeedback] = useState<string>('');
 
   const handleKeywordsChange = (newKeywords: string[]) => {
     setKeywords(newKeywords);
@@ -68,10 +83,60 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
     }
   };
 
+  const generateScores = async () => {
+    if (!description.trim() || searchResults.length === 0) {
+      setError('Please enter a description and have search results to score');
+      return;
+    }
+
+    setIsScoring(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/api/score-description', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          description: description.trim(),
+          searchResults: searchResults.map(r => ({
+            title: r.title,
+            snippet: r.snippet,
+            link: r.link,
+            position: r.position
+          }))
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data: ScoreResponse = await response.json();
+      setScoredResults(data.scoredResults);
+      setAverageScore(data.averageScore);
+      setOverallFeedback(data.feedback);
+      
+      if (onScoreGenerated) {
+        onScoreGenerated(data.scoredResults);
+      }
+    } catch (error) {
+      console.error('Score generation error:', error);
+      setError(`Failed to generate scores: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsScoring(false);
+    }
+  };
+
   const clearAll = () => {
     setKeywords([]);
     setSearchResults([]);
+    setScoredResults([]);
+    setDescription('');
     setError('');
+    setAverageScore(0);
+    setOverallFeedback('');
   };
 
   return (
@@ -139,6 +204,52 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
         )}
       </div>
 
+      {/* Description Input */}
+      {searchResults.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5" />
+              Audience Description
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                Describe your target audience *
+              </label>
+              <Textarea
+                id="description"
+                placeholder="Describe your target audience. What problem do they have? What solution are they looking for? Be specific about their role, industry, or pain points."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full min-h-[100px]"
+              />
+            </div>
+            
+            <div className="flex gap-3">
+              <Button
+                onClick={generateScores}
+                disabled={!description.trim() || isScoring}
+                className="px-6"
+              >
+                {isScoring ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generating Scores...
+                  </>
+                ) : (
+                  <>
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Generate Scores
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Error Display */}
       {error && (
         <Card className="border-red-200 bg-red-50">
@@ -148,12 +259,39 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
         </Card>
       )}
 
+      {/* Overall Score Summary */}
+      {scoredResults.length > 0 && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-900">
+              <BarChart3 className="w-5 h-5" />
+              Scoring Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-blue-800">Average Relevance Score:</span>
+                <span className="text-lg font-bold text-blue-900">
+                  {Math.round(averageScore * 100)}%
+                </span>
+              </div>
+              {overallFeedback && (
+                <div className="text-sm text-blue-800 bg-blue-100 p-3 rounded-md">
+                  <strong>Analysis:</strong> {overallFeedback}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Search Results */}
       {searchResults.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">
-              Search Results ({searchResults.length} found)
+              {scoredResults.length > 0 ? 'Scored Results' : 'Search Results'} ({scoredResults.length > 0 ? scoredResults.length : searchResults.length} found)
             </h3>
             <div className="text-sm text-gray-600">
               Query: <span className="font-medium">{keywords.join(' ')}</span>
@@ -161,7 +299,7 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
           </div>
           
           <div className="grid grid-cols-1 gap-4">
-            {searchResults.map((result, index) => (
+            {(scoredResults.length > 0 ? scoredResults : searchResults).map((result, index) => (
               <SearchResultCard 
                 key={index} 
                 result={result} 
