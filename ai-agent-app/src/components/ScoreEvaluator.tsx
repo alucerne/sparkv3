@@ -94,9 +94,9 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Score Your Topic</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">LLM Audience Targeting Validator</h2>
         <p className="text-gray-600">
-          Enter your topic and description to get scored search results with confidence ratings
+          Test how well your audience description will work for LLM-based audience targeting
         </p>
       </div>
 
@@ -105,13 +105,13 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
-            Topic & Description Input
+            Audience Description Input
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
             <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-2">
-              Topic *
+              Search Topic *
             </label>
             <Input
               id="topic"
@@ -125,11 +125,11 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
 
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-              Description *
+              Audience Description *
             </label>
             <Textarea
               id="description"
-              placeholder="Describe your topic in detail. What are you trying to achieve? Who is your target audience?"
+              placeholder="Describe your target audience. What problem do they have? What solution are they looking for? Be specific about their role, industry, or pain points."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full min-h-[100px]"
@@ -144,12 +144,12 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating Score...
+                Validating Audience Targeting...
               </>
             ) : (
               <>
                 <TrendingUp className="w-4 h-4 mr-2" />
-                Generate Score
+                Validate Audience Description
               </>
             )}
           </Button>
@@ -160,10 +160,10 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
       {searchResults.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Scored Search Results</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Audience Targeting Validation Results</h3>
             <div className="text-sm text-gray-600">
-              Average Score: <span className="font-medium">{Math.round(averageScore * 100)}%</span> 
-              ({totalResults} results analyzed)
+              Average Relevance: <span className="font-medium">{Math.round(averageScore * 100)}%</span> 
+              ({totalResults} search results analyzed)
             </div>
           </div>
           
@@ -175,7 +175,7 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
                     <div className="flex-1">
                       <div className="flex items-start gap-3">
                         <div className={`px-2 py-1 rounded-full text-xs font-medium ${getConfidenceColor(result.score)}`}>
-                          {getConfidenceLabel(result.score)} ({Math.round(result.score * 100)}%)
+                          {getConfidenceLabel(result.score)} Relevance ({Math.round(result.score * 100)}%)
                         </div>
                         <div className="flex-1">
                           <h4 className="font-medium text-gray-900 mb-1">{result.title}</h4>
@@ -221,16 +221,16 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
       {searchResults.length > 0 && (
         <Card className="border-blue-200 bg-blue-50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-900">
-              <AlertCircle className="w-5 h-5" />
-              Understanding Your Scores
-            </CardTitle>
+                      <CardTitle className="flex items-center gap-2 text-blue-900">
+            <AlertCircle className="w-5 h-5" />
+            Understanding Audience Targeting Scores
+          </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 text-sm text-blue-800">
-              <p>• <strong>High confidence results</strong> (≥80%) indicate strong topic relevance and search intent alignment</p>
-              <p>• <strong>Medium confidence results</strong> (60-79%) may need more specific keywords or clearer description</p>
-              <p>• <strong>Low confidence results</strong> (&lt;60%) suggest the topic might be too broad or needs refinement</p>
+              <p>• <strong>High relevance</strong> (≥80%) means your description will work well for LLM audience targeting</p>
+              <p>• <strong>Medium relevance</strong> (60-79%) suggests your description needs refinement for better targeting</p>
+              <p>• <strong>Low relevance</strong> (&lt;60%) indicates your description is too broad for effective audience targeting</p>
             </div>
           </CardContent>
         </Card>

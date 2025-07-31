@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { HfInference } from '@huggingface/inference';
 
-const API_KEY = 'WLcBQEMKS8U7PByABFZg3hUd';
+const SEARCH_API_KEY = 'WLcBQEMKS8U7PByABFZg3hUd';
+const HF_API_KEY = process.env.HUGGINGFACE_API_KEY;
+
+// Initialize Hugging Face inference
+const hf = new HfInference(HF_API_KEY);
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     // Query SearchAPI.io with the topic
     const query = encodeURIComponent(topic);
-    const searchUrl = `https://www.searchapi.io/api/v1/search?engine=google&q=${query}&api_key=${API_KEY}`;
+    const searchUrl = `https://www.searchapi.io/api/v1/search?engine=google&q=${query}&api_key=${SEARCH_API_KEY}`;
     console.log('SearchAPI URL:', searchUrl);
     
     const searchRes = await fetch(searchUrl);
@@ -47,54 +52,78 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Simple scoring based on keyword matching
-    const scoredResults = results.map((r: any, idx: number) => {
-      const titleLower = r.title.toLowerCase();
-      const snippetLower = r.snippet.toLowerCase();
-      const descriptionLower = description.toLowerCase();
-      
-      // Extract keywords from description
-      const descriptionWords = descriptionLower.split(/\s+/).filter((word: string) => word.length > 3);
-      
-      // Count matches in title and snippet
-      let titleMatches = 0;
-      let snippetMatches = 0;
-      
-      descriptionWords.forEach((word: string) => {
-        if (titleLower.includes(word)) titleMatches++;
-        if (snippetLower.includes(word)) snippetMatches++;
-      });
-      
-      // Calculate score based on matches
-      const titleScore = titleMatches / descriptionWords.length;
-      const snippetScore = snippetMatches / descriptionWords.length;
-      const combinedScore = (titleScore * 0.7) + (snippetScore * 0.3);
-      
-      // Add some randomness to simulate ML scoring
-      const randomFactor = 0.8 + (Math.random() * 0.4); // 0.8 to 1.2
-      const finalScore = Math.min(1.0, combinedScore * randomFactor);
-      
-      return {
-        ...r,
-        score: finalScore,
-      };
-    });
+    // Use Hugging Face reranker for LLM audience targeting simulation
+    if (!HF_API_KEY) {
+      throw new Error('Hugging Face API key not configured');
+    }
+
+    // Prepare pairs for reranking: [description, search_result_text]
+    const rerankPairs = results.map((r: any) => [
+      description, // User's audience targeting description
+      `${r.title}: ${r.snippet}` // Search result content
+    ]);
+
+    // Use cross-encoder model for reranking (better for this use case)
+    const scoredResults = await Promise.all(
+      rerankPairs.map(async ([query, passage]: [string, string], idx: number) => {
+        try {
+          // Use a cross-encoder model for reranking
+          const result = await hf.sentenceSimilarity({
+            model: 'cross-encoder/ms-marco-MiniLM-L-6-v2',
+            inputs: {
+              source_sentence: query,
+              sentences: [passage]
+            }
+          });
+          
+          // Convert similarity score to relevance score (0-1)
+          const relevanceScore = Array.isArray(result) ? result[0] : result;
+          const normalizedScore = Math.max(0, Math.min(1, relevanceScore));
+          
+          return {
+            ...results[idx],
+            score: normalizedScore,
+          };
+        } catch (error) {
+          console.error('Reranker error for result', idx, error);
+          // Fallback to simple keyword matching if reranker fails
+          const titleLower = results[idx].title.toLowerCase();
+          const snippetLower = results[idx].snippet.toLowerCase();
+          const descriptionLower = description.toLowerCase();
+          
+          const descriptionWords = descriptionLower.split(/\s+/).filter((word: string) => word.length > 3);
+          let matches = 0;
+          descriptionWords.forEach((word: string) => {
+            if (titleLower.includes(word) || snippetLower.includes(word)) matches++;
+          });
+          
+          const fallbackScore = descriptionWords.length > 0 ? matches / descriptionWords.length : 0.5;
+          
+          return {
+            ...results[idx],
+            score: fallbackScore,
+          };
+        }
+      })
+    );
 
     // Sort by score and take top 10
     const sorted = scoredResults
       .sort((a: any, b: any) => b.score - a.score)
       .slice(0, 10);
 
-    // Generate feedback based on average score
+    // Generate feedback based on average score for LLM audience targeting
     const avgScore = sorted.reduce((sum: number, r: any) => sum + r.score, 0) / sorted.length;
     let feedback = '';
     
-    if (avgScore < 0.7) {
-      feedback = 'Try removing audience-specific language (e.g., "for founders", "small business"). Focus on actions, features, and outcomes. Use synonyms like "email warm-up" or "spam filter avoidance."';
-    } else if (avgScore < 0.85) {
-      feedback = 'Good topic relevance! Consider adding more specific technical terms or industry keywords to improve matching.';
+    if (avgScore < 0.4) {
+      feedback = '⚠️ Poor LLM Audience Targeting: Your description is too broad or vague for effective audience targeting. Consider being more specific about the problem, solution, or industry. Avoid generic terms like "business owners" or "professionals."';
+    } else if (avgScore < 0.6) {
+      feedback = '⚠️ Limited LLM Audience Targeting: Your description needs refinement for better audience targeting. Add specific technical terms, industry keywords, or problem statements that people actually search for.';
+    } else if (avgScore < 0.8) {
+      feedback = '✅ Good LLM Audience Targeting: Your description shows good alignment with search intent. Consider adding more specific technical terms or industry context to improve targeting precision.';
     } else {
-      feedback = 'Excellent topic alignment! Your description closely matches relevant search results.';
+      feedback = '🎯 Excellent LLM Audience Targeting: Your description is highly specific and aligns well with search intent. This should work effectively for LLM-based audience targeting and segmentation.';
     }
 
     return NextResponse.json({
