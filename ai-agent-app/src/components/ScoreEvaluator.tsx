@@ -152,7 +152,7 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
       {/* Keyword Input */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-gray-900">
             <TrendingUp className="w-5 h-5" />
             Keyword Input
           </CardTitle>
@@ -208,12 +208,12 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
       {/* Description Input */}
       {searchResults.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              Custom Model Description
-            </CardTitle>
-          </CardHeader>
+                  <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-gray-900">
+            <Target className="w-5 h-5" />
+            Custom Model Description
+          </CardTitle>
+        </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">

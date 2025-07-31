@@ -79,7 +79,7 @@ export default function KeywordInput({
             onClick={handleAddClick}
             disabled={!inputValue.trim() || keywords.length >= maxKeywords}
             size="sm"
-            className="px-4"
+            className="px-4 bg-blue-700 hover:bg-blue-800 text-white"
           >
             <Plus className="w-4 h-4" />
           </Button>
@@ -119,7 +119,7 @@ export default function KeywordInput({
             }}
             variant="outline"
             size="sm"
-            className="mt-2"
+            className="mt-2 border-gray-600 text-gray-700 hover:bg-gray-50"
           >
             Clear All Keywords
           </Button>
