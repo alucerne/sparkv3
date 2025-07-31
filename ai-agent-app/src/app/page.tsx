@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import SparkModeSelector from '@/components/SparkModeSelector';
 import LensSelector from '@/components/LensSelector';
 import TopicInput from '@/components/TopicInput';
+import ScoreEvaluator from '@/components/ScoreEvaluator';
 import { CustomModelResponse } from '@/lib/customModelPrompt';
 
 
@@ -25,12 +26,13 @@ export default function Home() {
   const [error, setError] = useState('');
   const [selectedQuery, setSelectedQuery] = useState<string>('');
   const [showQuerySelection, setShowQuerySelection] = useState(false);
-  const [sparkMode, setSparkMode] = useState<'find' | 'custom'>('find');
+  const [sparkMode, setSparkMode] = useState<'find' | 'custom' | 'score'>('find');
   const [showLensSelector, setShowLensSelector] = useState(false);
   const [selectedLens, setSelectedLens] = useState<string>('');
   const [showTopicInput, setShowTopicInput] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [customModelResult, setCustomModelResult] = useState<CustomModelResponse | null>(null);
+  const [showScoreEvaluator, setShowScoreEvaluator] = useState(false);
 
   const handleSendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -259,7 +261,7 @@ export default function Home() {
     setShowTopicInput(false);
   };
 
-  const handleSparkModeChange = (mode: 'find' | 'custom') => {
+  const handleSparkModeChange = (mode: 'find' | 'custom' | 'score') => {
     setSparkMode(mode);
     console.log('SPARK Mode changed to:', mode);
     
@@ -268,10 +270,25 @@ export default function Home() {
       setShowLensSelector(true);
       setShowQuerySelection(false);
       setSelectedQuery('');
+      setShowTopicInput(false);
+      setCustomModelResult(null);
+      setShowScoreEvaluator(false);
+    } else if (mode === 'score') {
+      // Show score evaluator when "Score" is selected
+      setShowScoreEvaluator(true);
+      setShowLensSelector(false);
+      setShowQuerySelection(false);
+      setSelectedQuery('');
+      setShowTopicInput(false);
+      setCustomModelResult(null);
     } else {
-      // Hide lens selector when switching back to "Find Audience"
+      // Hide all custom components when switching back to "Find Audience"
       setShowLensSelector(false);
       setSelectedLens('');
+      setShowTopicInput(false);
+      setSelectedTopic('');
+      setCustomModelResult(null);
+      setShowScoreEvaluator(false);
     }
   };
 
@@ -408,6 +425,19 @@ export default function Home() {
                     topic={selectedTopic}
                     lens={selectedLens}
                     onComplete={handleCustomModelComplete}
+                  />
+                </div>
+              </div>
+            )}
+
+            {showScoreEvaluator && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 rounded-lg p-4 w-full">
+                  <ScoreEvaluator 
+                    onScoreGenerated={(results) => {
+                      console.log('Score results:', results);
+                      // You can add logic here to handle the results
+                    }}
                   />
                 </div>
               </div>

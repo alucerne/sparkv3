@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, Search, Settings } from 'lucide-react';
+import { ChevronDown, Search, Settings, TrendingUp } from 'lucide-react';
 
 interface SparkModeSelectorProps {
-  onSparkModeChange: (mode: 'find' | 'custom') => void;
-  defaultValue?: 'find' | 'custom';
+  onSparkModeChange: (mode: 'find' | 'custom' | 'score') => void;
+  defaultValue?: 'find' | 'custom' | 'score';
 }
 
 export default function SparkModeSelector({ 
@@ -13,20 +13,30 @@ export default function SparkModeSelector({
   defaultValue = 'find' 
 }: SparkModeSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<'find' | 'custom'>(defaultValue);
+  const [selectedMode, setSelectedMode] = useState<'find' | 'custom' | 'score'>(defaultValue);
 
-  const handleModeSelect = (mode: 'find' | 'custom') => {
+  const handleModeSelect = (mode: 'find' | 'custom' | 'score') => {
     setSelectedMode(mode);
     onSparkModeChange(mode);
     setIsOpen(false);
   };
 
-  const getModeLabel = (mode: 'find' | 'custom') => {
-    return mode === 'find' ? 'Find Audience' : 'Create Custom Model';
+  const getModeLabel = (mode: 'find' | 'custom' | 'score') => {
+    switch (mode) {
+      case 'find': return 'Find Audience';
+      case 'custom': return 'Create Custom Model';
+      case 'score': return 'Score';
+      default: return 'Find Audience';
+    }
   };
 
-  const getModeIcon = (mode: 'find' | 'custom') => {
-    return mode === 'find' ? <Search className="w-4 h-4" /> : <Settings className="w-4 h-4" />;
+  const getModeIcon = (mode: 'find' | 'custom' | 'score') => {
+    switch (mode) {
+      case 'find': return <Search className="w-4 h-4" />;
+      case 'custom': return <Settings className="w-4 h-4" />;
+      case 'score': return <TrendingUp className="w-4 h-4" />;
+      default: return <Search className="w-4 h-4" />;
+    }
   };
 
   return (
@@ -55,16 +65,27 @@ export default function SparkModeSelector({
               <span className="text-white text-sm">Find Audience</span>
             </button>
 
-            {/* Create Custom Model Option */}
-            <button
-              onClick={() => handleModeSelect('custom')}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-600 transition-colors ${
-                selectedMode === 'custom' ? 'bg-gray-600' : ''
-              }`}
-            >
-              <Settings className="w-4 h-4 text-white" />
-              <span className="text-white text-sm">Create Custom Model</span>
-            </button>
+                                    {/* Create Custom Model Option */}
+                        <button
+                          onClick={() => handleModeSelect('custom')}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-600 transition-colors ${
+                            selectedMode === 'custom' ? 'bg-gray-600' : ''
+                          }`}
+                        >
+                          <Settings className="w-4 h-4 text-white" />
+                          <span className="text-white text-sm">Create Custom Model</span>
+                        </button>
+
+                        {/* Score Option */}
+                        <button
+                          onClick={() => handleModeSelect('score')}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-600 transition-colors ${
+                            selectedMode === 'score' ? 'bg-gray-600' : ''
+                          }`}
+                        >
+                          <TrendingUp className="w-4 h-4 text-white" />
+                          <span className="text-white text-sm">Score</span>
+                        </button>
           </div>
         </div>
       )}
