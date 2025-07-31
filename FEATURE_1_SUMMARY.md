@@ -2,7 +2,7 @@
 
 ## ✅ **Feature Successfully Implemented and Deployed**
 
-### **Staging URL**: https://spark-h4t97ahfc-deeeps-projects-8d9261fd.vercel.app
+### **Staging URL**: https://spark-mxout2y82-deeeps-projects-8d9261fd.vercel.app
 
 ## 🎯 **What Was Implemented**
 
@@ -13,15 +13,11 @@
   - `onSparkModeChange: (mode: 'find' | 'custom') => void`
   - `defaultValue?: 'find' | 'custom'`
 
-### 2. **UI Components Used**
-- **shadcn/ui Select components**:
-  - `Select`
-  - `SelectTrigger` 
-  - `SelectContent`
-  - `SelectItem`
-  - `SelectValue`
-- **Tailwind CSS** for styling
-- **Max width**: `max-w-sm` as requested
+### 2. **UI Design**
+- **Tools Button**: Dark gray button with "Tools" label and chevron icon
+- **Dropdown Menu**: Dark-themed dropdown with icons and hover effects
+- **Icons**: Search icon for "Find Audience", Settings icon for "Create Custom Model"
+- **Styling**: Matches the tools menu design from the reference image
 
 ### 3. **Dropdown Options**
 - **"Find Audience"** (value = "find") - Default selected
@@ -96,22 +92,27 @@
 ## 🧪 **Testing Instructions**
 
 ### **Manual Testing Checklist**
-1. **Visit staging URL**: https://spark-h4t97ahfc-deeeps-projects-8d9261fd.vercel.app
-2. **Verify dropdown appears** above chat input
-3. **Test dropdown functionality**:
-   - Click dropdown to open
-   - Select "Find Audience" (should be default)
-   - Select "Create Custom Model"
+1. **Visit staging URL**: https://spark-mxout2y82-deeeps-projects-8d9261fd.vercel.app
+2. **Verify Tools button appears** above chat input
+3. **Test Tools dropdown functionality**:
+   - Click "Tools" button to open dropdown
+   - Verify dark-themed dropdown with icons appears
+   - Select "Find Audience" (with Search icon)
+   - Select "Create Custom Model" (with Settings icon)
    - Verify placeholder text changes
+   - Click outside to close dropdown
 4. **Check console logs** for mode change events
 5. **Test responsive design** on different screen sizes
 
 ### **Expected Behavior**
-- Dropdown should be visible and functional
+- Tools button should be visible and functional
+- Dark-themed dropdown should appear when clicked
+- Icons should be visible for each option
 - Mode changes should log to console
 - Input placeholder should update dynamically
+- Click outside should close dropdown
 - No errors in browser console
-- UI should remain consistent with existing design
+- UI should match the tools menu design reference
 
 ## 🔄 **Next Steps**
 
