@@ -12,10 +12,10 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { validateLensSelection, PerplexityResponse } from '@/lib/perplexity';
+import { getLensSubtopics, PerplexityResponse } from '@/lib/perplexity';
 
 interface LensSelectorProps {
-  onLensSelected: (lens: string, topic: string, validation?: PerplexityResponse) => void;
+  onLensSelected: (lens: string, topic: string, subtopics?: string[]) => void;
 }
 
 const lenses = [
@@ -54,21 +54,22 @@ const lenses = [
 export default function LensSelector({ onLensSelected }: LensSelectorProps) {
   const [selected, setSelected] = useState<string>('');
   const [topic, setTopic] = useState<string>('');
-  const [validation, setValidation] = useState<PerplexityResponse | null>(null);
-  const [isValidating, setIsValidating] = useState(false);
+  const [subtopics, setSubtopics] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLensSelection = async (lens: string) => {
     setSelected(lens);
     
     if (topic.trim()) {
-      setIsValidating(true);
+      setIsLoading(true);
       try {
-        const result = await validateLensSelection(topic.trim(), lens);
-        setValidation(result);
+        const result = await getLensSubtopics(topic.trim(), lens);
+        setSubtopics(result.subtopics);
       } catch (error) {
-        console.error('Validation error:', error);
+        console.error('Perplexity API error:', error);
+        setSubtopics([]);
       } finally {
-        setIsValidating(false);
+        setIsLoading(false);
       }
     } else {
       // If no topic entered, just select the lens
@@ -77,7 +78,7 @@ export default function LensSelector({ onLensSelected }: LensSelectorProps) {
   };
 
   const handleFinalSelection = (lens: string) => {
-    onLensSelected(lens, topic.trim(), validation || undefined);
+    onLensSelected(lens, topic.trim(), subtopics.length > 0 ? subtopics : undefined);
   };
 
   return (
@@ -111,14 +112,14 @@ export default function LensSelector({ onLensSelected }: LensSelectorProps) {
         </div>
       </div>
       
-      {/* Perplexity Analysis Results */}
-      {validation && (
+      {/* Perplexity Subtopics Results */}
+      {subtopics.length > 0 && (
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">AI Analysis Results</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">AI-Generated Subtopics</h3>
           
-          {/* Selected Lens Analysis */}
+          {/* Selected Lens */}
           <div className="mb-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">✅ Your Selection: {validation.lens}</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">✅ Your Selection: {selected}</h4>
             <Card className="border-blue-200 bg-blue-50">
               <CardContent className="p-4">
                 <div className="flex items-start space-x-3">
@@ -126,41 +127,36 @@ export default function LensSelector({ onLensSelected }: LensSelectorProps) {
                     <CheckCircle className="w-5 h-5 text-blue-600" />
                   </div>
                   <div className="flex-1">
-                    <h5 className="font-semibold text-blue-900">{validation.lens}</h5>
-                    <p className="text-sm text-blue-700 mt-1">{validation.explanation}</p>
+                    <h5 className="font-semibold text-blue-900">{selected}</h5>
+                    <p className="text-sm text-blue-700 mt-1">Lens-specific subtopics for "{topic}"</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Alternative Options */}
-          {validation.alternatives && validation.alternatives.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">💡 Alternative Lens Options</h4>
-              <p className="text-xs text-gray-600 mb-3">Click any option below to select it as your final choice:</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {validation.alternatives.map((alt, index) => (
-                  <Card key={index} className="border-gray-200 hover:border-gray-300 cursor-pointer" onClick={() => handleFinalSelection(alt.lens)}>
-                    <CardContent className="p-3">
-                      <div className="flex items-start space-x-2">
-                        <div className="p-1.5 rounded-lg bg-gray-100">
-                          <AlertCircle className="w-4 h-4 text-gray-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h5 className="font-medium text-gray-900 text-sm">{alt.lens}</h5>
-                          <p className="text-xs text-gray-600 mt-1">{alt.explanation}</p>
-                          <div className="mt-1">
-                            <span className="text-xs text-gray-500">Confidence: {alt.confidence}/10</span>
-                          </div>
-                        </div>
+          {/* Subtopics List */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">💡 Suggested Subtopics</h4>
+            <p className="text-xs text-gray-600 mb-3">Click any subtopic below to select it as your focus area:</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {subtopics.map((subtopic, index) => (
+                <Card key={index} className="border-gray-200 hover:border-gray-300 cursor-pointer" onClick={() => handleFinalSelection(selected)}>
+                  <CardContent className="p-3">
+                    <div className="flex items-start space-x-2">
+                      <div className="p-1.5 rounded-lg bg-gray-100">
+                        <AlertCircle className="w-4 h-4 text-gray-600" />
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                      <div className="flex-1">
+                        <h5 className="font-medium text-gray-900 text-sm">{subtopic}</h5>
+                        <p className="text-xs text-gray-600 mt-1">Specific {selected.toLowerCase()} subtopic</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          )}
+          </div>
         </div>
       )}
       
@@ -168,20 +164,20 @@ export default function LensSelector({ onLensSelected }: LensSelectorProps) {
         {lenses.map((lens) => {
           const IconComponent = lens.icon;
           const isSelected = selected === lens.name;
-          const isAnalyzed = validation && (validation.lens === lens.name || validation.alternatives?.some(alt => alt.lens === lens.name));
+          const hasSubtopics = subtopics.length > 0 && selected === lens.name;
           
           return (
             <Card
               key={lens.name}
-              onClick={() => !isValidating && handleLensSelection(lens.name)}
+              onClick={() => !isLoading && handleLensSelection(lens.name)}
               className={`transition-all duration-200 hover:shadow-md ${
-                isValidating 
+                isLoading 
                   ? 'cursor-not-allowed opacity-50' 
                   : 'cursor-pointer'
               } ${
                 isSelected 
                   ? 'border-blue-500 bg-blue-50 shadow-md' 
-                  : isAnalyzed
+                  : hasSubtopics
                   ? 'border-green-500 bg-green-50'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
