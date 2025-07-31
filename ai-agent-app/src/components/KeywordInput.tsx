@@ -72,7 +72,7 @@ export default function KeywordInput({
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            className="flex-1"
+            className="flex-1 text-gray-900 placeholder-gray-500"
             disabled={keywords.length >= maxKeywords}
           />
           <Button

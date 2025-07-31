@@ -224,7 +224,7 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
                 placeholder="Describe your custom model. What problem does it solve? What solution does it provide? Be specific about the functionality, features, or capabilities."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full min-h-[100px]"
+                className="w-full min-h-[100px] text-gray-900 placeholder-gray-500"
               />
             </div>
             

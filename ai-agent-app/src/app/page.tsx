@@ -482,7 +482,7 @@ export default function Home() {
                     ? "Describe what audience segments you're looking for..."
                     : "Describe the custom model you want to create..."
                 }
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 disabled={loading}
               />
