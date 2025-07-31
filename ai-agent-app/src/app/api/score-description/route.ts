@@ -119,17 +119,10 @@ export async function POST(request: NextRequest) {
 
     // Generate feedback based on average score for LLM audience targeting
     const avgScore = sorted.reduce((sum: number, r: any) => sum + r.score, 0) / sorted.length;
-    let feedback = '';
     
-    if (avgScore < 0.4) {
-      feedback = '⚠️ Poor LLM Audience Targeting: Your description is too broad or vague for effective audience targeting. Consider being more specific about the problem, solution, or industry. Avoid generic terms like "business owners" or "professionals."';
-    } else if (avgScore < 0.6) {
-      feedback = '⚠️ Limited LLM Audience Targeting: Your description needs refinement for better audience targeting. Add specific technical terms, industry keywords, or problem statements that people actually search for.';
-    } else if (avgScore < 0.8) {
-      feedback = '✅ Good LLM Audience Targeting: Your description shows good alignment with search intent. Consider adding more specific technical terms or industry context to improve targeting precision.';
-    } else {
-      feedback = '🎯 Excellent LLM Audience Targeting: Your description is highly specific and aligns well with search intent. This should work effectively for LLM-based audience targeting and segmentation.';
-    }
+    // Generate rule-based feedback
+    const feedbackArray = generateFeedback(description, avgScore);
+    const feedback = feedbackArray.join(' ');
 
     return NextResponse.json({
       scoredResults: sorted,
@@ -145,4 +138,55 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Rule-based feedback generation function
+function generateFeedback(description: string, avgScore: number): string[] {
+  const badWords = [
+    "affordable", "trusted", "easy", "simple", "modern", "freelancers",
+    "small business", "for marketers", "agency owners", "value", "budget",
+    "best", "top", "leading", "premium", "professional", "expert",
+    "startup", "entrepreneur", "founder", "manager", "director",
+    "cheap", "inexpensive", "cost-effective", "budget-friendly"
+  ];
+
+  const goodWords = [
+    "domain warm-up", "inbox placement", "spam filters",
+    "sender reputation", "SPF", "cold email deliverability",
+    "DKIM", "authentication", "bounce rate", "open rate",
+    "email warm-up", "IP reputation", "blacklist", "whitelist",
+    "email infrastructure", "deliverability", "email compliance"
+  ];
+
+  const feedback: string[] = [];
+
+  // Check for bad words (personas, vague language)
+  for (const word of badWords) {
+    if (description.toLowerCase().includes(word)) {
+      feedback.push(`⚠️ Remove "${word}" — this adds persona or vague value language that confuses LLM intent.`);
+    }
+  }
+
+  // Check for good words (LSI/search-aligned terms)
+  for (const word of goodWords) {
+    if (description.toLowerCase().includes(word)) {
+      feedback.push(`✅ Good use of "${word}" — this matches high-intent keywords found in search results.`);
+    }
+  }
+
+  // Score-based feedback
+  if (avgScore < 0.4) {
+    feedback.push("💡 Your description is too broad or vague for effective audience targeting. Consider being more specific about the problem, solution, or industry. Avoid generic terms like 'business owners' or 'professionals.'");
+  } else if (avgScore < 0.6) {
+    feedback.push("💡 Your description needs refinement for better audience targeting. Add specific technical terms, industry keywords, or problem statements that people actually search for.");
+  } else if (avgScore < 0.8) {
+    feedback.push("💡 Your description shows good alignment with search intent. Consider adding more specific technical terms or industry context to improve targeting precision.");
+  }
+
+  // If no specific feedback was generated, provide positive reinforcement
+  if (feedback.length === 0) {
+    feedback.push("✅ Great job! Your description is focused and aligned with real search content.");
+  }
+
+  return feedback;
 } 
