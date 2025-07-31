@@ -11,6 +11,7 @@ interface SearchResult {
   position?: number;
   score?: number;
   feedback?: string;
+  analysis?: string;
 }
 
 interface SearchResultCardProps {
@@ -90,11 +91,20 @@ export default function SearchResultCard({ result, index }: SearchResultCardProp
           </div>
         </div>
         
+        {/* Analysis Section */}
+        {result.analysis && (
+          <div className="mt-3 p-3 bg-blue-50 rounded-md border-l-4 border-blue-400">
+            <p className="text-xs text-blue-800 leading-relaxed">
+              <strong>Contextual Analysis:</strong> {result.analysis}
+            </p>
+          </div>
+        )}
+        
         {/* Feedback Section */}
         {result.feedback && (
-          <div className="mt-3 p-3 bg-gray-50 rounded-md border-l-4 border-blue-400">
+          <div className="mt-3 p-3 bg-gray-50 rounded-md border-l-4 border-gray-400">
             <p className="text-xs text-gray-700 leading-relaxed">
-              <strong>Analysis:</strong> {result.feedback}
+              <strong>General Feedback:</strong> {result.feedback}
             </p>
           </div>
         )}

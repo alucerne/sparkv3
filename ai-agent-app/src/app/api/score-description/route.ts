@@ -75,10 +75,17 @@ export async function POST(request: NextRequest) {
             feedback = '❌ Low relevance: Poor alignment with your audience description. This content may not effectively reach your target audience. Consider using more specific technical terms or industry keywords.';
           }
           
+          // Add contextual analysis for this specific result
+          const analysis = analyzeMatch(description, {
+            ...results[idx],
+            score: normalizedScore
+          });
+          
           return {
             ...results[idx],
             score: normalizedScore,
             feedback,
+            analysis,
           };
         } catch (error) {
           console.error('Reranker error for result', idx, error);
@@ -103,10 +110,17 @@ export async function POST(request: NextRequest) {
             feedback = '❌ Low keyword match: Limited overlap with your description. Consider using more relevant industry terms and specific problem statements.';
           }
           
+          // Add contextual analysis for fallback result
+          const analysis = analyzeMatch(description, {
+            ...results[idx],
+            score: fallbackScore
+          });
+          
           return {
             ...results[idx],
             score: fallbackScore,
             feedback,
+            analysis,
           };
         }
       })
@@ -287,4 +301,56 @@ Your task:
     console.error('Perplexity feedback generation error:', error);
     return ['🤖 AI analysis temporarily unavailable. Please try again later.'];
   }
+}
+
+// Contextual analysis function for individual SERP matches
+function analyzeMatch(description: string, result: { title: string; snippet: string; link: string; score: number }) {
+  const lowerDesc = description.toLowerCase();
+  const analysis: string[] = [];
+
+  // Keyword overlap - technical terms that should align
+  const overlapTerms = [
+    'SPF', 'domain warm-up', 'cold email deliverability', 'DMARC', 'inbox placement',
+    'sender reputation', 'email warm-up', 'spam filters', 'authentication', 'DKIM',
+    'bounce rate', 'open rate', 'email infrastructure', 'deliverability', 'email compliance',
+    'blacklist', 'whitelist', 'IP reputation', 'email authentication'
+  ];
+  
+  // Find terms that appear in both description and result
+  const foundTerms = overlapTerms.filter(term => 
+    lowerDesc.includes(term.toLowerCase()) && 
+    (result.title.toLowerCase().includes(term.toLowerCase()) || result.snippet.toLowerCase().includes(term.toLowerCase()))
+  );
+
+  if (foundTerms.length > 0) {
+    analysis.push(`✅ Good alignment on: ${foundTerms.join(', ')} — found in both your description and this page.`);
+  }
+
+  // Find terms that appear in result but are missing from description
+  const missedTerms = overlapTerms.filter(term => 
+    !lowerDesc.includes(term.toLowerCase()) && 
+    (result.title.toLowerCase().includes(term.toLowerCase()) || result.snippet.toLowerCase().includes(term.toLowerCase()))
+  );
+  
+  if (missedTerms.length > 0) {
+    analysis.push(`⚠️ Consider including terms like: ${missedTerms.join(', ')} — found in this result but missing from your description.`);
+  }
+
+  // Low semantic match fallback
+  if (result.score < 0.5 && analysis.length === 0) {
+    analysis.push(`❌ This result doesn't semantically align with your description. Check for vague or off-topic language.`);
+  }
+
+  // If no specific analysis was generated, provide general feedback
+  if (analysis.length === 0) {
+    if (result.score >= 0.8) {
+      analysis.push(`✅ Strong semantic alignment with this content.`);
+    } else if (result.score >= 0.6) {
+      analysis.push(`⚠️ Moderate alignment - consider adding more specific technical terms.`);
+    } else {
+      analysis.push(`❌ Weak alignment - this content may not match your target audience.`);
+    }
+  }
+
+  return analysis.join(' ');
 } 
