@@ -15,18 +15,23 @@ export async function POST(request: NextRequest) {
 
     // Query SearchAPI.io with the topic
     const query = encodeURIComponent(topic);
-    const searchRes = await fetch(
-      `https://www.searchapi.io/api/v1/search?engine=google&q=${query}&api_key=${API_KEY}`
-    );
+    const searchUrl = `https://www.searchapi.io/api/v1/search?engine=google&q=${query}&api_key=${API_KEY}`;
+    console.log('SearchAPI URL:', searchUrl);
+    
+    const searchRes = await fetch(searchUrl);
     
     if (!searchRes.ok) {
-      throw new Error(`SearchAPI error: ${searchRes.status}`);
+      const errorText = await searchRes.text();
+      console.error('SearchAPI error response:', errorText);
+      throw new Error(`SearchAPI error: ${searchRes.status} - ${errorText}`);
     }
     
     const searchData = await searchRes.json();
+    console.log('SearchAPI response structure:', Object.keys(searchData));
+    console.log('Number of results:', searchData.organic_results?.length || 0);
 
     // Extract and filter results
-    const results = (searchData.results || [])
+    const results = (searchData.organic_results || [])
       .slice(0, 20)
       .map((r: any) => ({
         title: r.title,

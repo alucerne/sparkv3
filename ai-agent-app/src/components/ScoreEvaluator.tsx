@@ -68,29 +68,12 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
       }
     } catch (error) {
       console.error('Score generation error:', error);
-      // Fallback to mock data if API fails
-      const mockResults: SearchResult[] = [
-        {
-          title: "How to Improve Email Deliverability in 2024",
-          link: "https://example.com/email-deliverability-guide",
-          score: 0.92,
-          snippet: "Learn the latest strategies for improving email deliverability rates and avoiding spam filters..."
-        },
-        {
-          title: "Cold Email Best Practices for B2B Sales",
-          link: "https://example.com/cold-email-best-practices",
-          score: 0.87,
-          snippet: "Discover proven techniques for writing effective cold emails that get responses..."
-        },
-        {
-          title: "Email Marketing Automation Tools Comparison",
-          link: "https://example.com/email-automation-tools",
-          score: 0.78,
-          snippet: "Compare the top email marketing automation platforms and their features..."
-        }
-      ];
       
-      setSearchResults(mockResults);
+      // Show error message to user instead of silent fallback
+      setFeedback(`Error: ${error instanceof Error ? error.message : 'Failed to generate scores. Please try again.'}`);
+      setSearchResults([]);
+      setAverageScore(0);
+      setTotalResults(0);
     } finally {
       setIsLoading(false);
     }
