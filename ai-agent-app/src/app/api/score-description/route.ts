@@ -127,7 +127,11 @@ export async function POST(request: NextRequest) {
     let perplexityFeedback: string[] = [];
     if (avgScore < 0.75) {
       try {
-        perplexityFeedback = await getPerplexityFeedback(keywords || [], description, sorted.slice(0, 5));
+        perplexityFeedback = await getPerplexityFeedback({
+          keywords: keywords || [],
+          description,
+          searchResults: sorted.slice(0, 5)
+        });
       } catch (error) {
         console.error('Perplexity feedback error:', error);
         // Continue without Perplexity feedback if it fails
@@ -206,36 +210,40 @@ function generateFeedback(description: string, avgScore: number): string[] {
 }
 
 // Perplexity-based feedback generation function
-async function getPerplexityFeedback(keywords: string[], description: string, topResults: any[]): Promise<string[]> {
+async function getPerplexityFeedback({
+  keywords,
+  description,
+  searchResults,
+}: {
+  keywords: string[];
+  description: string;
+  searchResults: { title: string; snippet: string }[];
+}): Promise<string[]> {
   const PERPLEXITY_API_KEY = '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';
   
   try {
-    // Prepare search results for the prompt
-    const searchResultsText = topResults.map((result, index) => 
-      `${index + 1}. ${result.title} – ${result.snippet}`
-    ).join('\n\n');
+    const topResults = searchResults
+      .slice(0, 5)
+      .map((r, i) => `${i + 1}. ${r.title} — ${r.snippet}`)
+      .join("\n");
 
-    // Create the prompt
-    const prompt = `You are analyzing a training description intended to match search content.
+    const prompt = `
+You are analyzing a training description for alignment with search result content.
 
-The user wants to target these keywords:
-[${keywords.join(', ')}]
+Keywords to target: ${keywords.join(", ")}
 
-Here are the top search results about those keywords:
+Search Results:
+${topResults}
 
-${searchResultsText}
-
-Here is the description the user wrote:
+User Description:
 "${description}"
 
 Your task:
-
-1. Identify words or phrases in the description that don't appear or align with the top results
-2. Suggest more specific technical or search-relevant terms to add
-3. Point out any vague, persona, or pricing-related language that confuses intent
-4. Suggest how to rewrite it to better match the pages shown above
-
-Provide specific, actionable feedback in a clear, concise format. Focus on practical improvements that will help the description better align with actual search content.`;
+- List 2–3 vague or irrelevant terms or phrases
+- Recommend what the user should add to improve match with these search results
+- Suggest a more specific or focused rewrite idea if helpful
+- Keep your response short, specific, and bullet-pointed
+`;
 
     // Call Perplexity API
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -267,22 +275,13 @@ Provide specific, actionable feedback in a clear, concise format. Focus on pract
     }
 
     const data = await response.json();
-    const aiFeedback = data.choices?.[0]?.message?.content || '';
-
-    // Parse the AI feedback into structured suggestions
-    const feedbackLines = aiFeedback
-      .split('\n')
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    return content
+      .split("\n")
       .map((line: string) => line.trim())
-      .filter((line: string) => line.length > 0 && (line.startsWith('-') || line.startsWith('•') || line.startsWith('1.') || line.startsWith('2.') || line.startsWith('3.') || line.startsWith('4.')))
-      .map((line: string) => line.replace(/^[-•\d\.\s]+/, '').trim())
-      .filter((line: string) => line.length > 0);
-
-    // If we can't parse structured feedback, return the raw feedback
-    if (feedbackLines.length === 0) {
-      return [`🤖 AI Analysis: ${aiFeedback}`];
-    }
-
-    return feedbackLines.map((line: string) => `🤖 ${line}`);
+      .filter((line: string) => line.length > 3)
+      .map((line: string) => `🤖 ${line}`);
 
   } catch (error) {
     console.error('Perplexity feedback generation error:', error);
