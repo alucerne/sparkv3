@@ -100,6 +100,7 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
         },
         body: JSON.stringify({
           description: description.trim(),
+          keywords: keywords,
           searchResults: searchResults.map(r => ({
             title: r.title,
             snippet: r.snippet,

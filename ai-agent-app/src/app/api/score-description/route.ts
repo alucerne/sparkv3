@@ -9,7 +9,7 @@ const hf = new HfInference(HF_API_KEY);
 
 export async function POST(request: NextRequest) {
   try {
-    const { description, searchResults } = await request.json();
+    const { description, searchResults, keywords } = await request.json();
 
     if (!description || !searchResults || !Array.isArray(searchResults)) {
       return NextResponse.json(
@@ -122,7 +122,21 @@ export async function POST(request: NextRequest) {
     
     // Generate rule-based feedback
     const feedbackArray = generateFeedback(description, avgScore);
-    const feedback = feedbackArray.join(' ');
+    
+    // Add Perplexity-based feedback if score is low or always for deeper analysis
+    let perplexityFeedback: string[] = [];
+    if (avgScore < 0.75) {
+      try {
+        perplexityFeedback = await getPerplexityFeedback(keywords || [], description, sorted.slice(0, 5));
+      } catch (error) {
+        console.error('Perplexity feedback error:', error);
+        // Continue without Perplexity feedback if it fails
+      }
+    }
+    
+    // Combine rule-based and Perplexity feedback
+    const allFeedback = [...feedbackArray, ...perplexityFeedback];
+    const feedback = allFeedback.join(' ');
 
     return NextResponse.json({
       scoredResults: sorted,
@@ -189,4 +203,89 @@ function generateFeedback(description: string, avgScore: number): string[] {
   }
 
   return feedback;
+}
+
+// Perplexity-based feedback generation function
+async function getPerplexityFeedback(keywords: string[], description: string, topResults: any[]): Promise<string[]> {
+  const PERPLEXITY_API_KEY = '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';
+  
+  try {
+    // Prepare search results for the prompt
+    const searchResultsText = topResults.map((result, index) => 
+      `${index + 1}. ${result.title} – ${result.snippet}`
+    ).join('\n\n');
+
+    // Create the prompt
+    const prompt = `You are analyzing a training description intended to match search content.
+
+The user wants to target these keywords:
+[${keywords.join(', ')}]
+
+Here are the top search results about those keywords:
+
+${searchResultsText}
+
+Here is the description the user wrote:
+"${description}"
+
+Your task:
+
+1. Identify words or phrases in the description that don't appear or align with the top results
+2. Suggest more specific technical or search-relevant terms to add
+3. Point out any vague, persona, or pricing-related language that confuses intent
+4. Suggest how to rewrite it to better match the pages shown above
+
+Provide specific, actionable feedback in a clear, concise format. Focus on practical improvements that will help the description better align with actual search content.`;
+
+    // Call Perplexity API
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'sonar-pro',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert in search intent analysis and audience targeting optimization. Provide clear, actionable feedback to improve training descriptions.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 500,
+        temperature: 0.3,
+        stream: false
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Perplexity API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiFeedback = data.choices?.[0]?.message?.content || '';
+
+    // Parse the AI feedback into structured suggestions
+    const feedbackLines = aiFeedback
+      .split('\n')
+      .map((line: string) => line.trim())
+      .filter((line: string) => line.length > 0 && (line.startsWith('-') || line.startsWith('•') || line.startsWith('1.') || line.startsWith('2.') || line.startsWith('3.') || line.startsWith('4.')))
+      .map((line: string) => line.replace(/^[-•\d\.\s]+/, '').trim())
+      .filter((line: string) => line.length > 0);
+
+    // If we can't parse structured feedback, return the raw feedback
+    if (feedbackLines.length === 0) {
+      return [`🤖 AI Analysis: ${aiFeedback}`];
+    }
+
+    return feedbackLines.map((line: string) => `🤖 ${line}`);
+
+  } catch (error) {
+    console.error('Perplexity feedback generation error:', error);
+    return ['🤖 AI analysis temporarily unavailable. Please try again later.'];
+  }
 } 
