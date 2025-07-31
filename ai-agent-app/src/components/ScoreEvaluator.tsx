@@ -30,6 +30,9 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [feedback, setFeedback] = useState<string>('');
+  const [averageScore, setAverageScore] = useState<number>(0);
+  const [totalResults, setTotalResults] = useState<number>(0);
 
   const handleGenerateScore = async () => {
     if (!topic.trim() || !description.trim()) {
@@ -56,6 +59,9 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
 
       const data: ScoreResponse = await response.json();
       setSearchResults(data.scoredResults);
+      setFeedback(data.feedback);
+      setAverageScore(data.averageScore);
+      setTotalResults(data.totalResults);
       
       if (onScoreGenerated) {
         onScoreGenerated(data.scoredResults);
@@ -167,10 +173,16 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
         </CardContent>
       </Card>
 
-      {/* Results */}
+      {/* Results Summary */}
       {searchResults.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Scored Search Results</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Scored Search Results</h3>
+            <div className="text-sm text-gray-600">
+              Average Score: <span className="font-medium">{Math.round(averageScore * 100)}%</span> 
+              ({totalResults} results analyzed)
+            </div>
+          </div>
           
           <div className="space-y-3">
             {searchResults.map((result, index) => (
@@ -205,20 +217,37 @@ export default function ScoreEvaluator({ onScoreGenerated }: ScoreEvaluatorProps
         </div>
       )}
 
-      {/* Feedback Section */}
+      {/* API Feedback Section */}
+      {feedback && (
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-yellow-900">
+              <AlertCircle className="w-5 h-5" />
+              AI Feedback
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-yellow-800 leading-relaxed">
+              {feedback}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* General Tips Section */}
       {searchResults.length > 0 && (
         <Card className="border-blue-200 bg-blue-50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-blue-900">
               <AlertCircle className="w-5 h-5" />
-              Improvement Tips
+              Understanding Your Scores
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 text-sm text-blue-800">
-              <p>• <strong>High confidence results</strong> indicate strong topic relevance and search intent alignment</p>
-              <p>• <strong>Medium confidence results</strong> may need more specific keywords or clearer description</p>
-              <p>• <strong>Low confidence results</strong> suggest the topic might be too broad or needs refinement</p>
+              <p>• <strong>High confidence results</strong> (≥80%) indicate strong topic relevance and search intent alignment</p>
+              <p>• <strong>Medium confidence results</strong> (60-79%) may need more specific keywords or clearer description</p>
+              <p>• <strong>Low confidence results</strong> (&lt;60%) suggest the topic might be too broad or needs refinement</p>
             </div>
           </CardContent>
         </Card>
