@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import SparkModeSelector from '@/components/SparkModeSelector';
 import LensSelector from '@/components/LensSelector';
+import { PerplexityResponse } from '@/lib/perplexity';
 
 interface Message {
   id: string;
@@ -197,15 +198,31 @@ export default function Home() {
     setSelectedLens('');
   };
 
-  const handleLensSelected = (lens: string) => {
+  const handleLensSelected = (lens: string, topic: string, validation?: PerplexityResponse) => {
     setSelectedLens(lens);
-    console.log('Selected lens:', lens);
+    console.log('Selected lens:', lens, 'Topic:', topic, 'Validation:', validation);
+    
+    let content = `Great! You've selected the **${lens}** lens for creating your custom model.`;
+    
+    if (topic) {
+      content += `\n\n**Topic:** ${topic}`;
+    }
+    
+    if (validation) {
+      if (validation.lens === lens) {
+        content += `\n\n✅ **Perfect match!** The ${lens} lens is ideal for your topic.`;
+      } else {
+        content += `\n\n💡 **Recommendation:** Consider using the **${validation.lens}** lens instead.\n\n**Why:** ${validation.explanation}`;
+      }
+    }
+    
+    content += `\n\nNow describe what you want to create with this perspective.`;
     
     // Add a message to the chat showing the selected lens
     const lensMessage: Message = {
       id: Date.now().toString(),
       role: 'assistant',
-      content: `Great! You've selected the **${lens}** lens for creating your custom model. Now describe what you want to create with this perspective.`,
+      content: content,
       timestamp: new Date(),
     };
     
