@@ -6,16 +6,5 @@
   "devCommand": "cd ai-agent-app && npm run dev",
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "ai-agent-app/src/app/api/**/*.ts": {
-      "runtime": "nodejs18.x"
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/ai-agent-app/$1"
-    }
-  ]
+  }
 } 
