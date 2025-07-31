@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import SparkModeSelector from '@/components/SparkModeSelector';
 
 interface Message {
   id: string;
@@ -20,6 +21,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [selectedQuery, setSelectedQuery] = useState<string>('');
   const [showQuerySelection, setShowQuerySelection] = useState(false);
+  const [sparkMode, setSparkMode] = useState<'find' | 'custom'>('find');
 
   const handleSendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -190,6 +192,12 @@ export default function Home() {
     setSelectedQuery('');
   };
 
+  const handleSparkModeChange = (mode: 'find' | 'custom') => {
+    setSparkMode(mode);
+    console.log('SPARK Mode changed to:', mode);
+    // TODO: Implement different behavior based on mode
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-6xl mx-auto p-4">
@@ -329,12 +337,24 @@ export default function Home() {
 
           {/* Input Area */}
           <div className="border-t border-gray-200 p-4">
+            {/* SPARK Mode Selector */}
+            <div className="mb-4">
+              <SparkModeSelector 
+                onSparkModeChange={handleSparkModeChange}
+                defaultValue={sparkMode}
+              />
+            </div>
+            
             <div className="flex gap-4">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Describe what audience segments you're looking for..."
+                placeholder={
+                  sparkMode === 'find' 
+                    ? "Describe what audience segments you're looking for..."
+                    : "Describe the custom model you want to create..."
+                }
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 disabled={loading}

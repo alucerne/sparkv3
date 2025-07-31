@@ -1,0 +1,17 @@
+{
+  "name": "spark-ai-staging",
+  "framework": "nextjs",
+  "buildCommand": "cd ai-agent-app && npm install && npm run build",
+  "outputDirectory": "ai-agent-app/.next",
+  "installCommand": "cd ai-agent-app && npm install",
+  "devCommand": "cd ai-agent-app && npm run dev",
+  "env": {
+    "NODE_ENV": "staging",
+    "VERCEL_ENV": "staging"
+  },
+  "functions": {
+    "ai-agent-app/src/app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  }
+} 
